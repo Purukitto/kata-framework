@@ -1,0 +1,11 @@
+{
+  "name": "kata-framework",
+  "private": true,
+  "workspaces": [
+    "packages/*",
+    "examples/*"
+  ],
+  "scripts": {
+    "test": "bun test"
+  }
+}

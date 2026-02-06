@@ -1,0 +1,66 @@
+---
+description: Syntax definition for .kata narrative files
+globs: "**/*.kata"
+---
+
+# Kata File Syntax
+
+## Structure of a Single Scene Component
+
+A `.kata` file represents a Single Scene Component with the following structure:
+
+### Frontmatter
+
+YAML block at the top delimited by `---`. Contains:
+- `id`: Scene identifier
+- `assets`: Asset references
+- `layout`: Layout configuration
+
+Example:
+```yaml
+---
+id: scene-01
+assets:
+  bg: "path/to/background.png"
+layout: "fullscreen"
+---
+```
+
+### Logic
+
+`<script>` tag containing valid TypeScript code. Must import from `@/store`.
+
+Example:
+```typescript
+<script>
+import { useStore } from '@/store';
+
+// Scene logic here
+</script>
+```
+
+### Narrative
+
+The narrative section contains the story content with the following syntax elements:
+
+#### Directives
+
+Media and effect directives using square brackets:
+- `[bg src="path/to/image.png"]` - Background image
+- `[music vol=0.5]` - Music with volume control
+
+#### Speakers
+
+Speaker lines using double colons:
+- `:: Name ::` - Speaker name
+- Followed by dialogue text
+
+#### Choices
+
+Interactive choices using asterisk notation:
+- `* [Label] -> @target` - Choice option that navigates to target scene
+
+#### Conditionals
+
+Conditional content blocks:
+- `{{ if condition }} ... {{ /if }}` - Conditional rendering based on state
