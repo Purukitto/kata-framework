@@ -64,3 +64,30 @@ Interactive choices using asterisk notation:
 
 Conditional content blocks:
 - `{{ if condition }} ... {{ /if }}` - Conditional rendering based on state
+
+## Logic Block
+
+We use Remark Directives for conditionals.
+
+### Conditional Syntax
+
+Use `:::if{cond="condition"}` to create conditional blocks:
+
+```markdown
+:::if{cond="player.hp > 0"}
+:: Speaker ::
+Content
+:::
+```
+
+### Variable Interpolation
+
+Use `${variable.path}` inside text to inject values.
+
+Example:
+```markdown
+:::if{cond="player.hp > 0"}
+:: Narrator ::
+You have ${player.hp} health points remaining.
+:::
+```

@@ -15,6 +15,9 @@ TypeScript, Zustand (Immer), Unified/Remark (Parsing), Zod.
 ## Constraints
 NEVER import react inside kata-core. NEVER access window inside kata-core.
 
+## Security
+Code Execution: NEVER use eval(). Always use new Function with a restricted context for user logic. All logic evaluation must happen in src/runtime/evaluator.ts.
+
 ## Game State Management
 Game State must be managed via a Factory Pattern to ensure isolation. Use `createGameStore(initialCtx)` to create fresh store instances.
 

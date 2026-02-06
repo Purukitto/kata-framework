@@ -10,7 +10,8 @@ export type KSONAction =
   | { type: "choice"; choices: Choice[] }
   | { type: "visual"; layer: string; src: string; effect?: string }
   | { type: "wait"; duration: number }
-  | { type: "exec"; code: string };
+  | { type: "exec"; code: string }
+  | { type: "condition"; condition: string; then: KSONAction[] };
 
 export interface Choice {
   id: string;

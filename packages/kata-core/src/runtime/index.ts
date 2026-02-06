@@ -1,6 +1,7 @@
 import { EventEmitter } from "eventemitter3";
 import { createGameStore, type GameState } from "./store";
-import type { KSONScene, KSONFrame } from "../types";
+import { evaluate, interpolate } from "./evaluator";
+import type { KSONScene, KSONFrame, KSONAction } from "../types";
 
 export class KataEngine extends EventEmitter {
   private store: ReturnType<typeof createGameStore>;
@@ -42,6 +43,20 @@ export class KataEngine extends EventEmitter {
     }
 
     const currentIndex = state.currentActionIndex;
+    const action = scene.actions[currentIndex];
+
+    // Handle condition actions
+    if (action && action.type === "condition") {
+      const conditionResult = evaluate(action.condition, state.ctx);
+      
+      if (conditionResult) {
+        // True: Insert the then actions into the playback queue immediately after the current index
+        const thenActions = [...action.then]; // Create a copy to avoid mutation issues
+        scene.actions.splice(currentIndex + 1, 0, ...thenActions);
+      }
+      // False: Skip to the next action (fall through to increment)
+    }
+
     const totalActions = scene.actions.length;
 
     // Check if we're at the end
@@ -77,9 +92,18 @@ export class KataEngine extends EventEmitter {
       return;
     }
 
+    // Interpolate text content for text actions
+    let processedAction: KSONAction = action;
+    if (action.type === "text") {
+      processedAction = {
+        ...action,
+        content: interpolate(action.content, state.ctx),
+      };
+    }
+
     const frame: KSONFrame = {
       meta: scene.meta,
-      action,
+      action: processedAction,
       state: {
         ctx: state.ctx,
         currentSceneId: state.currentSceneId,
