@@ -38,7 +38,6 @@ export function useKata() {
       engine.start(id);
     },
     makeChoice: (id: string) => {
-      // @ts-expect-error - makeChoice may not exist yet on KataEngine
       engine.makeChoice(id);
     },
   };

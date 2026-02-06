@@ -29,6 +29,40 @@ export class KataEngine extends EventEmitter {
     this.emitFrame();
   }
 
+  makeChoice(choiceId: string): void {
+    const state = this.store.getState();
+    const sceneId = state.currentSceneId;
+
+    if (!sceneId) {
+      throw new Error("No active scene. Call start() first.");
+    }
+
+    const scene = this.scenes.get(sceneId);
+    if (!scene) {
+      throw new Error(`Scene "${sceneId}" not found`);
+    }
+
+    const currentIndex = state.currentActionIndex;
+    const action = scene.actions[currentIndex];
+
+    if (!action || action.type !== "choice") {
+      throw new Error("Current action is not a choice.");
+    }
+
+    const choice = action.choices.find((c) => c.id === choiceId);
+    if (!choice) {
+      throw new Error(`Choice "${choiceId}" not found`);
+    }
+
+    if (choice.target) {
+      this.start(choice.target);
+      return;
+    }
+
+    // No target: advance to next action
+    this.next();
+  }
+
   next(): void {
     const state = this.store.getState();
     const sceneId = state.currentSceneId;
