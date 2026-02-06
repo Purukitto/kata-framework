@@ -1,0 +1,21 @@
+---
+description: Rules for the React Adapter package
+globs: "packages/kata-react/**/*"
+---
+
+# React Adapter Rules
+
+## Purpose
+This package bridges kata-core (Headless) to React.
+
+## Tech Stack
+React 19, Hooks, Context API.
+
+## Constraints
+
+- Must NOT contain game logic. All logic belongs in kata-core.
+- Must only render data based on KSONFrame.
+- Use useEffect to subscribe to engine.on('update').
+
+## Naming
+Hooks must start with use. Components must be functional.
