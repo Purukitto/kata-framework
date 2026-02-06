@@ -70,7 +70,7 @@ You bought the item.
     expect(choiceFrame).toBeDefined();
     expect(choiceFrame!.action.type).toBe("choice");
 
-    if (choiceFrame!.action.type !== "choice") throw new Error("expected choice");
+    if (!choiceFrame || choiceFrame.action.type !== "choice") throw new Error("expected choice");
     const choiceId = choiceFrame.action.choices[0]?.id;
     expect(choiceId).toBeDefined();
 
