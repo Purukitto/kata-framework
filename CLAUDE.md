@@ -23,7 +23,7 @@ cd packages/kata-react && bun test
 # Run a single test file
 bun test packages/kata-core/tests/parser.test.ts
 
-# Versioning / release
+# Versioning / release (Powered by Changesets & GitHub Actions)
 bun run changeset          # create a changeset
 bun run version            # bump versions
 bun run release            # build + publish
@@ -75,5 +75,5 @@ Three sections in order:
 - **Security:** All user code runs through `evaluate()` in `src/runtime/evaluator.ts` using `new Function` with an explicit context argument list. Never introduce `eval()`.
 - **Headless:** `kata-core` must remain free of DOM/React dependencies.
 - **KSON as contract:** UI code should only consume `KSONFrame` — never reach into internal engine state directly.
-- **Store isolation:** Always create the store via `createGameStore(initialCtx)`. Do not share store instances across engine instances.
-- **Changesets:** Any publishable change to `kata-core` or `kata-react` needs a changeset (`bun run changeset`) before merging.
+- Store isolation: Always create the store via `createGameStore(initialCtx)`. Do not share store instances across engine instances.
+- Changesets: Any publishable change to `@kata-framework/core` or `@kata-framework/react` needs a changeset (`bun run changeset`) before merging.

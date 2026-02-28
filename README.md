@@ -2,61 +2,17 @@
 
 **A Headless, Media-First Narrative Engine for Modern Web Apps.**
 
-Kata Framework is a headless runtime for interactive narrative: parse `.kata` scene files, run logic and conditionals, and drive any UI (React, Vue, or vanilla) via a simple protocol. You own the look and feel; Kata owns the story state and flow.
+Kata Framework is a headless runtime designed for creating interactive narratives, visual novels, and text adventures. It parses `.kata` scene files, strictly evaluates logic and conditionals, and drives any UI framework (React, Vue, or vanilla JS) via a predictable protocol. 
+
+**You own the look and feel; Kata owns the story state and flow.**
 
 ---
 
-## Architecture
+## ⚡ Quick Start
 
-The project is a **monorepo** (Bun workspaces) with two main packages:
+Kata Framework packages are published to npm under the `@kata-framework` scope.
 
-| Package        | Role |
-|----------------|------|
-| **kata-core**  | Pure engine: no React, no DOM. Parses `.kata` files into KSON, evaluates conditions and variables, emits frames. Use it in Node, Bun, or any bundler. |
-| **kata-react** | React bindings: `<KataProvider>`, `useKata()` hook, and optional debug UI. Depends on `kata-core` and is the reference integration. |
-
-### Tech Stack & Core Concepts
-
-- **KSON (Kata Serialized Object Notation)**: The intermediate JSON-like representation emitted by the framework, acting as the strict protocol between engine and UI.
-- **Zustand (Immer)**: Manages game state strictly through a Factory Pattern (`createGameStore(initialCtx)`) for safe initialization and isolation.
-- **Unified/Remark**: Used for parsing `.kata` narrative files.
-- **Secure Evaluation**: User logic is securely evaluated via `new Function` with a restricted context (we never use `eval()`), isolated in `src/runtime/evaluator.ts`.
-
-```
-kata-framework/
-├── packages/
-│   ├── kata-core/    # Parser, runtime, evaluator, types
-│   └── kata-react/   # Provider, useKata, KataDebug
-├── package.json      # Workspace root
-└── README.md
-```
-
-Additional packages (e.g. examples, tooling) may live under `packages/` or `examples/` as the project grows.
-
----
-
-## Key Features
-
-- **KSON protocol** — Scenes compile to a simple JSON-like structure (meta, actions, frames). The engine emits **KSONFrame** objects; your UI renders from that contract alone.
-- **Zod & type-safety** — TypeScript types and Zod (in the stack) for reliable parsing and runtime validation.
-- **Headless runtime** — No built-in UI. Use the engine in React, Vue, Svelte, or plain JS; plug in your own components and styling.
-- **Mod support (planned)** — Design goal: load third-party `.kata` modules and assets without touching core code.
-
----
-
-## Kata File Syntax (`.kata`)
-
-A `.kata` narrative file consists of three parts:
-
-1. **Frontmatter**: YAML block setting configuration like `id`, `assets`, and `layout`.
-2. **Logic**: A `<script>` tag with TypeScript to read logic (e.g. `import { useStore } from '@/store';`).
-3. **Narrative**: The story content written in a markdown-like syntax using directives, choices, and conditional blocks (e.g., `:::if{cond="..."} ... :::`).
-
----
-
-## Installation
-
-Kata Framework packages are published to **npm**. You can install them using your preferred package manager:
+### 1. Installation
 
 **Using Bun (Recommended):**
 ```bash
@@ -68,27 +24,60 @@ bun add @kata-framework/core @kata-framework/react
 npm install @kata-framework/core @kata-framework/react
 ```
 
-**Using pnpm:**
-```bash
-pnpm add @kata-framework/core @kata-framework/react
-```
+> **Note:** If you are building a UI with React, you will need both `@kata-framework/core` and `@kata-framework/react`. If you are building a UI with another framework (like Vue or Svelte), you only need `@kata-framework/core`.
 
-> **Note:** If you are building a UI with React, you will need both `@kata-framework/core` and `@kata-framework/react`. If you are building a UI with another framework, you only need `@kata-framework/core`.
+### 2. The `.kata` File Syntax
+
+A `.kata` narrative file is designed to be highly readable for writers, while remaining powerful for developers. It consists of three parts:
+
+1. **Frontmatter**: A YAML block setting configuration like `id`, `assets`, and `layout`.
+2. **Logic**: A `<script>` tag with TypeScript to run logic safely in an isolated context.
+3. **Narrative**: The story content written in a markdown-like syntax using directives, choices, and conditional blocks (e.g., `:::if{cond="..."} ... :::`).
 
 ---
 
-## Quick Start (Development)
+## 📦 Packages & Documentation
 
-From the repo root:
+Kata is built as a modular monorepo. Detailed API documentation for each package can be found in their respective directories:
+
+| Package | Version | Description |
+|---------|---------|-------------|
+| [`@kata-framework/core`](./packages/kata-core) | *(npm)* | The pure, headless engine. Parses `.kata` files, evaluates conditions safely, and emits state frames. |
+| [`@kata-framework/react`](./packages/kata-react) | *(npm)* | React 19 bindings (`<KataProvider>` and `useKata()` hook) to easily connect the engine to your UI. |
+
+---
+
+## 🛠️ Key Features
+
+- **Headless runtime** — Zero built-in UI components. Bring your own components, styling, and animations.
+- **KSON protocol** — The engine compiles `.kata` files into a strict JSON-like structure (meta, actions, frames). Your UI renders from this reliable contract alone.
+- **Secure Evaluation** — Logic inside `.kata` scripts is parsed securely. We never use `eval()`.
+- **Zod & Type-Safety** — Built from the ground up with strict TypeScript types and Zod validation.
+- **Mod Support (Planned)** — Designed to safely load third-party `.kata` modules and assets dynamically.
+
+---
+
+## 🤝 Contributing & Development
+
+We welcome contributions! Kata Framework uses [Bun](https://bun.sh/) for package management and [Changesets](https://github.com/changesets/changesets) for release versioning.
+
+To set up the project locally:
 
 ```bash
+# Install dependencies
 bun install
-bun run build # Builds all workspaces using tsup
+
+# Build the packages using tsup
+bun run build
+
+# Run the test suites
 bun test
 ```
 
-- **Run only core tests:** `cd packages/kata-core && bun test`
-- **Run only React tests:** `cd packages/kata-react && bun test`
-- **Creating a Release Intent:** `bun run changeset`
+### Creating PRs
 
-See **packages/kata-core/README.md** for engine usage and **packages/kata-react/README.md** for React setup and the `useKata()` hook.
+When submitting a Pull Request that modifies the public api of `@kata-framework/core` or `@kata-framework/react`, please generate a changeset:
+
+```bash
+bun run changeset
+```

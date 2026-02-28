@@ -14,6 +14,11 @@
     "verbatimModuleSyntax": true,
     "noEmit": true,
 
+    // Monorepo Path Resolution
+    "paths": {
+      "@kata-framework/core/*": ["./packages/kata-core/*"]
+    },
+
     // Best practices
     "strict": true,
     "skipLibCheck": true,
