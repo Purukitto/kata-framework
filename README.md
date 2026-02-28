@@ -54,16 +54,41 @@ A `.kata` narrative file consists of three parts:
 
 ---
 
-## Quick Start
+## Installation
+
+Kata Framework packages are published to **npm**. You can install them using your preferred package manager:
+
+**Using Bun (Recommended):**
+```bash
+bun add @kata-framework/core @kata-framework/react
+```
+
+**Using npm:**
+```bash
+npm install @kata-framework/core @kata-framework/react
+```
+
+**Using pnpm:**
+```bash
+pnpm add @kata-framework/core @kata-framework/react
+```
+
+> **Note:** If you are building a UI with React, you will need both `@kata-framework/core` and `@kata-framework/react`. If you are building a UI with another framework, you only need `@kata-framework/core`.
+
+---
+
+## Quick Start (Development)
 
 From the repo root:
 
 ```bash
 bun install
+bun run build # Builds all workspaces using tsup
 bun test
 ```
 
 - **Run only core tests:** `cd packages/kata-core && bun test`
 - **Run only React tests:** `cd packages/kata-react && bun test`
+- **Creating a Release Intent:** `bun run changeset`
 
 See **packages/kata-core/README.md** for engine usage and **packages/kata-react/README.md** for React setup and the `useKata()` hook.

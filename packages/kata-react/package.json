@@ -1,5 +1,5 @@
 {
-  "name": "kata-react",
+  "name": "@kata-framework/react",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
@@ -28,7 +28,7 @@
     "typescript": "^5"
   },
   "dependencies": {
-    "kata-core": "workspace:*",
+    "@kata-framework/core": "workspace:*",
     "react": "^19.2.4",
     "react-dom": "^19.2.4"
   }
