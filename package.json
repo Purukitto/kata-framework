@@ -7,7 +7,7 @@
   ],
   "scripts": {
     "test": "bun test",
-    "build": "bun --filter \"*\" run build",
+    "build": "bun --workspaces run build",
     "changeset": "changeset",
     "version": "changeset version",
     "release": "bun run build && changeset publish"
