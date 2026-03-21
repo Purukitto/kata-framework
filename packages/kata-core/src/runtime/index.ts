@@ -1,19 +1,28 @@
 import { EventEmitter } from "eventemitter3";
 import { createGameStore, type GameState } from "./store";
 import { evaluate, interpolate } from "./evaluator";
-import type { KSONScene, KSONFrame, KSONAction } from "../types";
+import { SnapshotManager, type Migrator } from "./snapshot";
+import type { AssetRegistry } from "../assets/index";
+import type { KSONScene, KSONFrame, KSONAction, GameStateSnapshot } from "../types";
 
 export class KataEngine extends EventEmitter {
   private store: ReturnType<typeof createGameStore>;
   private scenes: Map<string, KSONScene> = new Map();
+  private snapshotManager: SnapshotManager;
+  private assetRegistry: AssetRegistry | null = null;
 
   constructor(initialCtx: Record<string, any> = {}) {
     super();
     this.store = createGameStore(initialCtx);
+    this.snapshotManager = new SnapshotManager();
   }
 
   registerScene(scene: KSONScene): void {
     this.scenes.set(scene.meta.id, scene);
+  }
+
+  setAssetRegistry(registry: AssetRegistry): void {
+    this.assetRegistry = registry;
   }
 
   start(sceneId: string): void {
@@ -24,6 +33,11 @@ export class KataEngine extends EventEmitter {
 
     // Reset state to the scene via store action
     this.store.getState().setScene(sceneId);
+
+    // Emit preload signal if asset registry is configured
+    if (this.assetRegistry) {
+      this.emit("preload", this.assetRegistry.getAssetsForScene(sceneId));
+    }
 
     // Emit the first frame
     this.emitFrame();
@@ -79,6 +93,19 @@ export class KataEngine extends EventEmitter {
     const currentIndex = state.currentActionIndex;
     const action = scene.actions[currentIndex];
 
+    // Handle audio actions (fire-and-forget, auto-advance)
+    if (action && action.type === "audio") {
+      this.emit("audio", action.command);
+      const totalActions = scene.actions.length;
+      if (currentIndex >= totalActions - 1) {
+        this.emit("end", { sceneId });
+        return;
+      }
+      state.nextAction();
+      this.emitFrame();
+      return;
+    }
+
     // Handle condition actions
     if (action && action.type === "condition") {
       const conditionResult = evaluate(action.condition, state.ctx);
@@ -106,6 +133,61 @@ export class KataEngine extends EventEmitter {
     this.emitFrame();
   }
 
+  getSnapshot(): GameStateSnapshot {
+    const state = this.store.getState();
+    const snapshot: GameStateSnapshot = {
+      schemaVersion: 1,
+      ctx: structuredClone(state.ctx),
+      currentSceneId: state.currentSceneId,
+      currentActionIndex: state.currentActionIndex,
+      history: [...state.history],
+    };
+
+    // Include expanded actions if a scene is active (handles condition splicing)
+    if (state.currentSceneId) {
+      const scene = this.scenes.get(state.currentSceneId);
+      if (scene) {
+        snapshot.expandedActions = structuredClone(scene.actions);
+      }
+    }
+
+    return snapshot;
+  }
+
+  loadSnapshot(raw: unknown): void {
+    const snapshot = this.snapshotManager.migrate(raw);
+
+    // Validate sceneId exists if non-null
+    if (snapshot.currentSceneId !== null && !this.scenes.has(snapshot.currentSceneId)) {
+      throw new Error(`Scene "${snapshot.currentSceneId}" not found. Register scenes before loading a snapshot.`);
+    }
+
+    // Restore expanded actions if present
+    if (snapshot.expandedActions && snapshot.currentSceneId) {
+      const scene = this.scenes.get(snapshot.currentSceneId);
+      if (scene) {
+        scene.actions = snapshot.expandedActions;
+      }
+    }
+
+    // Restore store state
+    this.store.getState().restoreState({
+      ctx: snapshot.ctx,
+      currentSceneId: snapshot.currentSceneId,
+      currentActionIndex: snapshot.currentActionIndex,
+      history: snapshot.history,
+    });
+
+    // Emit current frame if there's an active scene
+    if (snapshot.currentSceneId) {
+      this.emitFrame();
+    }
+  }
+
+  registerMigration(fromVersion: number, migrator: Migrator): void {
+    this.snapshotManager.registerMigration(fromVersion, migrator);
+  }
+
   private emitFrame(): void {
     const state = this.store.getState();
     const sceneId = state.currentSceneId;
@@ -123,6 +205,19 @@ export class KataEngine extends EventEmitter {
     const action = scene.actions[currentIndex];
 
     if (!action) {
+      return;
+    }
+
+    // Audio actions are fire-and-forget: emit audio event and auto-advance
+    if (action.type === "audio") {
+      this.emit("audio", action.command);
+      const totalActions = scene.actions.length;
+      if (currentIndex >= totalActions - 1) {
+        this.emit("end", { sceneId });
+        return;
+      }
+      this.store.getState().nextAction();
+      this.emitFrame();
       return;
     }
 
