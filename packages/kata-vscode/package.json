@@ -1,0 +1,28 @@
+{
+  "name": "kata-vscode",
+  "displayName": "Kata Language Support",
+  "description": "Syntax highlighting for .kata narrative files",
+  "version": "0.1.0",
+  "private": true,
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": ["Programming Languages"],
+  "contributes": {
+    "languages": [
+      {
+        "id": "kata",
+        "aliases": ["Kata", "kata"],
+        "extensions": [".kata"],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "kata",
+        "scopeName": "source.kata",
+        "path": "./syntaxes/kata.tmLanguage.json"
+      }
+    ]
+  }
+}

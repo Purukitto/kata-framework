@@ -1,0 +1,79 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "Kata",
+  "scopeName": "source.kata",
+  "patterns": [
+    { "include": "#frontmatter" },
+    { "include": "#script-block" },
+    { "include": "#conditional" },
+    { "include": "#directive" },
+    { "include": "#speaker-dialogue" },
+    { "include": "#choice" },
+    { "include": "#interpolation" }
+  ],
+  "repository": {
+    "frontmatter": {
+      "name": "meta.embedded.block.frontmatter.kata",
+      "begin": "\\A(---)",
+      "end": "^(---)",
+      "beginCaptures": {
+        "1": { "name": "punctuation.definition.frontmatter.begin.kata" }
+      },
+      "endCaptures": {
+        "1": { "name": "punctuation.definition.frontmatter.end.kata" }
+      },
+      "patterns": [
+        { "include": "source.yaml" }
+      ]
+    },
+    "script-block": {
+      "name": "meta.embedded.block.script.kata",
+      "begin": "(<script>)",
+      "end": "(</script>)",
+      "beginCaptures": {
+        "1": { "name": "punctuation.definition.tag.begin.kata" }
+      },
+      "endCaptures": {
+        "1": { "name": "punctuation.definition.tag.end.kata" }
+      },
+      "patterns": [
+        { "include": "source.js" }
+      ]
+    },
+    "conditional": {
+      "patterns": [
+        {
+          "name": "keyword.control.conditional.kata",
+          "match": ":::if\\{cond=\"[^\"]*\"\\}"
+        },
+        {
+          "name": "keyword.control.conditional.kata",
+          "match": "^:::"
+        }
+      ]
+    },
+    "directive": {
+      "name": "keyword.other.directive.kata",
+      "match": "\\[bg\\s+src=\"[^\"]*\"\\]"
+    },
+    "speaker-dialogue": {
+      "match": "^::\\s*(.+?)\\s*::\\s*(.*)$",
+      "captures": {
+        "1": { "name": "entity.name.tag.speaker.kata" },
+        "2": { "name": "string.unquoted.dialogue.kata" }
+      }
+    },
+    "choice": {
+      "match": "^\\*\\s*\\[(.+?)\\]\\s*(->\\s*@(\\S+))?",
+      "captures": {
+        "1": { "name": "entity.name.label.kata" },
+        "2": { "name": "keyword.operator.choice.kata" },
+        "3": { "name": "entity.name.type.target.kata" }
+      }
+    },
+    "interpolation": {
+      "name": "variable.other.interpolation.kata",
+      "match": "\\$\\{[^}]+\\}"
+    }
+  }
+}
