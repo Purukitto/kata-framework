@@ -7,7 +7,14 @@
   "engines": {
     "vscode": "^1.85.0"
   },
+  "scripts": {
+    "package": "vsce package",
+    "publish": "vsce publish"
+  },
   "categories": ["Programming Languages"],
+  "devDependencies": {
+    "@vscode/vsce": "^3.5.0"
+  },
   "contributes": {
     "languages": [
       {
