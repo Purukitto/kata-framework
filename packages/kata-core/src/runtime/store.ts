@@ -12,6 +12,12 @@ export interface GameStore extends GameState {
   setVariable: (key: string, value: any) => void;
   setScene: (sceneId: string) => void;
   nextAction: () => void;
+  restoreState: (snapshot: {
+    ctx: Record<string, any>;
+    currentSceneId: string | null;
+    currentActionIndex: number;
+    history: string[];
+  }) => void;
 }
 
 export function createGameStore(initialCtx: Record<string, any> = {}) {
@@ -39,6 +45,14 @@ export function createGameStore(initialCtx: Record<string, any> = {}) {
       nextAction: () =>
         set((state) => {
           state.currentActionIndex += 1;
+        }),
+
+      restoreState: (snapshot) =>
+        set((state) => {
+          state.ctx = snapshot.ctx;
+          state.currentSceneId = snapshot.currentSceneId;
+          state.currentActionIndex = snapshot.currentActionIndex;
+          state.history = snapshot.history;
         }),
     }))
   );
