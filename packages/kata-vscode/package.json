@@ -8,6 +8,7 @@
     "vscode": "^1.85.0"
   },
   "scripts": {
+    "build": "echo 'no build step'",
     "package": "vsce package",
     "publish": "vsce publish"
   },
