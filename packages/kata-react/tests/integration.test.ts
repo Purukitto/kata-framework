@@ -1,7 +1,6 @@
 import { expect, test, describe } from "bun:test";
-import { parseKata } from "../../kata-core/src/parser";
-import { KataEngine } from "../../kata-core/src/runtime";
-import type { KSONFrame } from "../../kata-core/src/types";
+import { parseKata, KataEngine } from "@kata-framework/core";
+import type { KSONFrame } from "@kata-framework/core";
 
 const INTEGRATION_SCENE = `---
 id: integration_test

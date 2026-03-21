@@ -5,5 +5,5 @@ export default defineConfig({
   format: ["cjs", "esm"],
   dts: true,
   clean: true,
-  external: ["react", "react-dom", "kata-core"],
+  external: ["react", "react-dom", "@kata-framework/core"],
 });

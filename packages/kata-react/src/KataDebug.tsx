@@ -1,10 +1,8 @@
+import React from "react";
 import { useKata } from "./useKata";
 
 export function KataDebug() {
   const { frame, state, actions } = useKata();
-
-  const isChoiceAction = frame?.action.type === "choice";
-  const isTextAction = frame?.action.type === "text";
 
   return (
     <div
@@ -72,7 +70,7 @@ export function KataDebug() {
           ) : (
             <>
               <div style={{ flex: 1, marginBottom: "20px" }}>
-                {isTextAction && (
+                {frame.action.type === "text" && (
                   <div style={{ color: "#00ff00", lineHeight: "1.6" }}>
                     <div style={{ marginBottom: "10px" }}>
                       <strong>{frame.action.speaker}:</strong>
@@ -81,7 +79,7 @@ export function KataDebug() {
                   </div>
                 )}
 
-                {isChoiceAction && (
+                {frame.action.type === "choice" && (
                   <div style={{ color: "#00ff00" }}>
                     <div style={{ marginBottom: "15px" }}>
                       <strong>Choices:</strong>
@@ -93,7 +91,7 @@ export function KataDebug() {
                         gap: "10px",
                       }}
                     >
-                      {frame.action.choices.map((choiceOption) => (
+                      {frame.action.choices.map((choiceOption: { id: string; label: string }) => (
                         <button
                           key={choiceOption.id}
                           onClick={() => actions.makeChoice(choiceOption.id)}
@@ -107,11 +105,11 @@ export function KataDebug() {
                             fontFamily: "monospace",
                             cursor: "pointer",
                           }}
-                          onMouseOver={(e) => {
-                            e.currentTarget.style.backgroundColor = "#001100";
+                          onMouseOver={(e: React.MouseEvent<HTMLButtonElement>) => {
+                            (e.currentTarget as any).style.backgroundColor = "#001100";
                           }}
-                          onMouseOut={(e) => {
-                            e.currentTarget.style.backgroundColor = "#000";
+                          onMouseOut={(e: React.MouseEvent<HTMLButtonElement>) => {
+                            (e.currentTarget as any).style.backgroundColor = "#000";
                           }}
                         >
                           &gt; {choiceOption.label}
@@ -121,7 +119,7 @@ export function KataDebug() {
                   </div>
                 )}
 
-                {!isTextAction && !isChoiceAction && (
+                {frame.action.type !== "text" && frame.action.type !== "choice" && (
                   <div style={{ color: "#00ff00" }}>
                     <div style={{ marginBottom: "10px" }}>
                       <strong>Action Type:</strong> {frame.action.type}
@@ -141,7 +139,7 @@ export function KataDebug() {
               </div>
 
               {/* Next Button (only if not at a choice) */}
-              {!isChoiceAction && (
+              {frame.action.type !== "choice" && (
                 <div>
                   <button
                     onClick={actions.next}
@@ -155,11 +153,11 @@ export function KataDebug() {
                       fontFamily: "monospace",
                       cursor: "pointer",
                     }}
-                    onMouseOver={(e) => {
-                      e.currentTarget.style.backgroundColor = "#001100";
+                    onMouseOver={(e: React.MouseEvent<HTMLButtonElement>) => {
+                      (e.currentTarget as any).style.backgroundColor = "#001100";
                     }}
-                    onMouseOut={(e) => {
-                      e.currentTarget.style.backgroundColor = "#000";
+                    onMouseOut={(e: React.MouseEvent<HTMLButtonElement>) => {
+                      (e.currentTarget as any).style.backgroundColor = "#000";
                     }}
                   >
                     &gt; Next

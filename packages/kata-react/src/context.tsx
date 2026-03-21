@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useRef, type ReactNode } from "react";
-import { KataEngine } from "kata-core/src/runtime";
+import { KataEngine, type KSONScene } from "@kata-framework/core";
 
 interface KataContextType {
   engine: KataEngine;
@@ -10,14 +10,20 @@ const KataContext = createContext<KataContextType | null>(null);
 interface KataProviderProps {
   children: ReactNode;
   config?: any;
+  initialScenes?: KSONScene[];
 }
 
-export function KataProvider({ children, config }: KataProviderProps) {
+export function KataProvider({ children, config, initialScenes }: KataProviderProps) {
   const engineRef = useRef<KataEngine | null>(null);
 
   // Initialize engine only once (persists across renders)
   if (!engineRef.current) {
     engineRef.current = new KataEngine(config);
+    if (initialScenes) {
+      for (const scene of initialScenes) {
+        engineRef.current.registerScene(scene);
+      }
+    }
   }
 
   return (
