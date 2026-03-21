@@ -1,6 +1,6 @@
 {
-  "name": "@kata-framework/react",
-  "version": "0.1.1",
+  "name": "@kata-framework/test-utils",
+  "version": "0.2.0",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -21,16 +21,12 @@
   },
   "devDependencies": {
     "@types/bun": "latest",
-    "@types/react": "^19.2.13",
-    "@types/react-dom": "^19.2.3",
     "tsup": "^8.5.1"
   },
   "peerDependencies": {
     "typescript": "^5"
   },
   "dependencies": {
-    "@kata-framework/core": "workspace:*",
-    "react": "^19.2.4",
-    "react-dom": "^19.2.4"
+    "@kata-framework/core": "workspace:*"
   }
 }

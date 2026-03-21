@@ -1,7 +1,7 @@
 import { z } from "zod";
 import type { GameStateSnapshot, KSONAction } from "../types";
 
-export const CURRENT_SCHEMA_VERSION = 1;
+export const CURRENT_SCHEMA_VERSION = 2;
 
 const KSONActionSchema: z.ZodType<KSONAction> = z.lazy(() =>
   z.union([
@@ -50,6 +50,17 @@ export const GameStateSnapshotSchema = z.object({
   currentActionIndex: z.number().int().min(0),
   history: z.array(z.string()),
   expandedActions: z.array(KSONActionSchema).optional(),
+  undoStack: z
+    .array(
+      z.object({
+        ctx: z.record(z.string(), z.any()),
+        currentSceneId: z.string().nullable(),
+        currentActionIndex: z.number().int().min(0),
+        history: z.array(z.string()),
+        expandedActions: z.array(KSONActionSchema).optional(),
+      })
+    )
+    .optional(),
 });
 
 export type Migrator = (data: any) => any;

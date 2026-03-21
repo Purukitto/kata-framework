@@ -58,6 +58,49 @@ export function interpolate(text: string, context: Record<string, any>): string 
 }
 
 /**
+ * Evaluates code with structured error return instead of console.warn.
+ */
+export function evaluateWithDiagnostic(
+  code: string,
+  context: Record<string, any>
+): { result: any; error?: string } {
+  try {
+    const paramNames = Object.keys(context);
+    const paramValues = Object.values(context);
+    const fn = new Function(...paramNames, `return ${code}`);
+    return { result: fn(...paramValues) };
+  } catch (error) {
+    return {
+      result: null,
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
+}
+
+/**
+ * Interpolates text with structured error collection.
+ */
+export function interpolateWithDiagnostic(
+  text: string,
+  context: Record<string, any>
+): { result: string; errors: string[] } {
+  const errors: string[] = [];
+  const result = text.replace(/\$\{([^}]+)\}/g, (match, path) => {
+    const trimmedPath = path.trim();
+    try {
+      const value = resolvePath(context, trimmedPath);
+      return value != null ? String(value) : "";
+    } catch (error) {
+      errors.push(
+        `Failed to interpolate \${${trimmedPath}}: ${error instanceof Error ? error.message : String(error)}`
+      );
+      return "";
+    }
+  });
+  return { result, errors };
+}
+
+/**
  * Resolves a dot-notation path in an object.
  * 
  * @param obj - The object to resolve the path in

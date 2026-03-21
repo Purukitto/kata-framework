@@ -225,12 +225,17 @@ describe("loadSnapshot", () => {
 });
 
 describe("SnapshotManager", () => {
-  test("migration pipeline transforms v0 -> v1", () => {
+  test("migration pipeline transforms v0 -> v2", () => {
     const manager = new SnapshotManager();
     manager.registerMigration(0, (data: any) => ({
       ...data,
       schemaVersion: 1,
       history: data.history || [],
+    }));
+    manager.registerMigration(1, (data: any) => ({
+      ...data,
+      undoStack: [],
+      schemaVersion: 2,
     }));
 
     const result = manager.migrate({
@@ -240,7 +245,7 @@ describe("SnapshotManager", () => {
       currentActionIndex: 0,
     });
 
-    expect(result.schemaVersion).toBe(1);
+    expect(result.schemaVersion).toBe(2);
     expect(result.history).toEqual([]);
     expect(result.ctx).toEqual({ x: 1 });
   });
@@ -259,15 +264,18 @@ describe("SnapshotManager", () => {
     ).toThrow(/No migrator registered for schema version 0/);
   });
 
-  test("multi-step migration v0 -> v1 -> v2 (hypothetical)", () => {
+  test("multi-step migration v0 -> v1 -> v2", () => {
     const manager = new SnapshotManager();
 
-    // For this test, we pretend CURRENT_SCHEMA_VERSION were 2
-    // but since it's 1, v0 -> v1 is all we need
     manager.registerMigration(0, (data: any) => ({
       ...data,
       schemaVersion: 1,
       history: data.history || [],
+    }));
+    manager.registerMigration(1, (data: any) => ({
+      ...data,
+      undoStack: [],
+      schemaVersion: 2,
     }));
 
     const result = manager.migrate({

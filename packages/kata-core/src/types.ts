@@ -40,6 +40,26 @@ export interface KSONFrame {
   state: Record<string, any>;
 }
 
+export interface Diagnostic {
+  level: "error" | "warning" | "info";
+  message: string;
+  sceneId?: string;
+  line?: number;
+  actionIndex?: number;
+}
+
+export interface KataEngineOptions {
+  historyDepth?: number;
+}
+
+export interface UndoEntry {
+  ctx: Record<string, any>;
+  currentSceneId: string | null;
+  currentActionIndex: number;
+  history: string[];
+  expandedActions?: KSONAction[];
+}
+
 export interface GameStateSnapshot {
   schemaVersion: number;
   ctx: Record<string, any>;
@@ -47,4 +67,5 @@ export interface GameStateSnapshot {
   currentActionIndex: number;
   history: string[];
   expandedActions?: KSONAction[];
+  undoStack?: UndoEntry[];
 }

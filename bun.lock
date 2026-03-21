@@ -68,6 +68,20 @@
         "typescript": "^5",
       },
     },
+    "packages/kata-test-utils": {
+      "name": "@kata-framework/test-utils",
+      "version": "0.1.0",
+      "dependencies": {
+        "@kata-framework/core": "workspace:*",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "tsup": "^8.5.1",
+      },
+      "peerDependencies": {
+        "typescript": "^5",
+      },
+    },
     "packages/kata-vscode": {
       "name": "kata-vscode",
       "version": "0.1.0",
@@ -212,6 +226,8 @@
     "@kata-framework/core": ["@kata-framework/core@workspace:packages/kata-core"],
 
     "@kata-framework/react": ["@kata-framework/react@workspace:packages/kata-react"],
+
+    "@kata-framework/test-utils": ["@kata-framework/test-utils@workspace:packages/kata-test-utils"],
 
     "@manypkg/find-root": ["@manypkg/find-root@1.1.0", "", { "dependencies": { "@babel/runtime": "^7.5.5", "@types/node": "^12.7.1", "find-up": "^4.1.0", "fs-extra": "^8.1.0" } }, "sha512-mki5uBvhHzO8kYYix/WRy2WX8S3B5wdVSc9D6KcU5lQNglP2yt58/VfLuAK49glRXChosY8ap2oJ1qgma3GUVA=="],
 

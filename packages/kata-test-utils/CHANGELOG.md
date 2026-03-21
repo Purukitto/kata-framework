@@ -1,4 +1,4 @@
-# @kata-framework/core
+# @kata-framework/test-utils
 
 ## 0.2.0
 
@@ -13,8 +13,7 @@
   - Snapshot schema version bumped to 2 with built-in v1→v2 migrator
   - New package `@kata-framework/test-utils` with `createTestEngine()`, `collectFrames()`, `assertFrame()`, `mockAudioManager()`
 
-## 0.1.0
+### Patch Changes
 
-### Minor Changes
-
-- 8f169c5: Add audio manager, layered VFS, scene merging, asset preloading, scene graph, snapshot system. Fix React imports to use @kata-framework/core with useSyncExternalStore.
+- Updated dependencies
+  - @kata-framework/core@0.2.0

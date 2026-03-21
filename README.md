@@ -15,6 +15,7 @@ Kata Framework is a headless runtime designed for creating interactive narrative
 | [`@kata-framework/core`](./packages/kata-core) | Pure headless engine — parser, runtime, store, audio, VFS, modding, assets |
 | [`@kata-framework/react`](./packages/kata-react) | React 19 bindings — `<KataProvider>`, `useKata()`, `KataDebug` |
 | [`@kata-framework/cli`](./packages/kata-cli) | CLI tool — watch `.kata` files and compile to KSON JSON |
+| [`@kata-framework/test-utils`](./packages/kata-test-utils) | Test utilities — `createTestEngine()`, `collectFrames()`, `assertFrame()` |
 | [`kata-vscode`](./packages/kata-vscode) | VS Code extension — syntax highlighting for `.kata` files |
 
 ---
@@ -170,10 +171,31 @@ Logic runs securely via `new Function` (never `eval`). Access game state through
 | Syntax | Description |
 |--------|-------------|
 | `[bg src="file.mp4"]` | Visual directive — set a background/video layer |
+| `[bg src="file.mp4" transition="fade"]` | Visual directive with a transition effect |
 | `:: Speaker :: dialogue text` | Text action — character speaks |
 | `* [Label] -> @scene/id` | Choice — player picks, engine jumps to target scene |
 | `:::if{cond="expr"} ... :::` | Conditional block — content only appears when condition is true |
 | `${expression}` | Interpolation — inline variable values in text |
+
+Under the hood, the engine also supports these action types in KSON (useful when building scenes programmatically):
+
+| KSON Action Type | Description |
+|------------------|-------------|
+| `{ type: "wait", duration: 2000 }` | Pause playback for a duration (ms) |
+| `{ type: "exec", code: "ctx.gold += 10" }` | Run logic mid-scene without a `<script>` block |
+| `{ type: "audio", command: { ... } }` | Fire-and-forget audio command (see [Audio System](#audio-system)) |
+
+Choices also support optional fields for advanced branching:
+
+```ts
+{
+  id: "bribe",
+  label: "Bribe the guard",
+  target: "@castle/gate",
+  condition: "player.gold >= 50",  // only show this choice when true
+  action: "ctx.gold -= 50"         // run logic when chosen
+}
+```
 
 ---
 
@@ -273,6 +295,13 @@ vfs.addLayer("mod-a", modProvider);   // overrides base
 
 const content = await vfs.readFile("scenes/intro.kata");
 // Returns mod-a's version if it exists, otherwise base
+
+// List merged directory entries across all layers
+const files = await vfs.listDir("scenes/");
+
+// Manage layers at runtime
+vfs.removeLayer("mod-a");
+vfs.getLayers(); // ["base"]
 ```
 
 ### Scene Merging
@@ -317,6 +346,20 @@ engine.on("preload", (assetIds) => {
 
 ---
 
+## Engine Events
+
+The engine communicates entirely through events. Listen to these to drive your UI:
+
+| Event | Payload | When |
+|-------|---------|------|
+| `"update"` | `KSONFrame` | A new frame is ready to render |
+| `"end"` | — | The current scene has no more actions |
+| `"audio"` | `AudioCommand` | An audio action fired (auto-advances) |
+| `"error"` | `Diagnostic` | A non-fatal error occurred (bad condition, interpolation failure) |
+| `"preload"` | `string[]` | Asset IDs to preload (when an `AssetRegistry` is set) |
+
+---
+
 ## CLI Usage
 
 ```bash
@@ -328,6 +371,17 @@ kata build "scenes/**/*.kata" -o dist/ --watch
 
 # Output: dist/intro.kson.json, dist/shop.kson.json, ...
 ```
+
+You can also create a `kata.config.json` in your project root to avoid repeating flags:
+
+```json
+{
+  "input": "scenes/**/*.kata",
+  "output": "dist/kson"
+}
+```
+
+The CLI resolves config as: **CLI flags → `kata.config.json` → defaults**.
 
 ---
 
@@ -348,6 +402,104 @@ Install from the `packages/kata-vscode` directory or package it with `vsce`:
 cd packages/kata-vscode
 npx @vscode/vsce package
 # Install the generated .vsix in VS Code
+```
+
+---
+
+## Plugins
+
+Extend the engine with hooks that run before/after actions, on choices, and on scene transitions. See the **[Plugin Guide](./docs/plugins.md)** for full documentation.
+
+```ts
+import type { KataPlugin } from "@kata-framework/core";
+
+const logger: KataPlugin = {
+  name: "logger",
+  beforeAction(action, ctx) {
+    console.log(`[${action.type}]`, action);
+    return action;
+  },
+  onChoice(choice, ctx) {
+    console.log(`Player chose: ${choice.label}`);
+  },
+};
+
+engine.use(logger);
+engine.getPlugins();       // ["logger"]
+engine.removePlugin("logger");
+```
+
+---
+
+## Undo / Rewind
+
+The engine maintains an undo stack for player comfort and debugging:
+
+```ts
+// Create engine with custom history depth (default: 50)
+const engine = new KataEngine(initialCtx, { historyDepth: 100 });
+
+// Advance through the story
+engine.start("intro");
+engine.next();
+engine.next();
+
+// Go back one step — restores ctx, scene, action index
+engine.back();
+
+// Undo stack is included in snapshots
+const snapshot = engine.getSnapshot(); // snapshot.undoStack preserved
+engine.loadSnapshot(snapshot);         // rewind capability restored
+```
+
+---
+
+## Error Diagnostics
+
+The engine never crashes on bad user expressions. Failed conditions are treated as `false`, and broken interpolations return partial results. Non-fatal errors are emitted as `"error"` events:
+
+```ts
+engine.on("error", (diagnostic) => {
+  console.warn(`[${diagnostic.level}] ${diagnostic.message}`, {
+    sceneId: diagnostic.sceneId,
+    actionIndex: diagnostic.actionIndex,
+  });
+});
+```
+
+For static analysis during authoring, use `parseKataWithDiagnostics()`:
+
+```ts
+import { parseKataWithDiagnostics } from "@kata-framework/core";
+
+const { scene, diagnostics } = parseKataWithDiagnostics(source);
+for (const d of diagnostics) {
+  console.log(`${d.level}: ${d.message} (line ${d.line})`);
+}
+```
+
+---
+
+## Test Utilities
+
+The `@kata-framework/test-utils` package eliminates boilerplate in tests:
+
+```ts
+import { createTestEngine, collectFrames, assertFrame, mockAudioManager } from "@kata-framework/test-utils";
+
+// Quick engine setup from raw .kata content
+const { engine, frames } = createTestEngine("---\nid: test\n---\n:: A :: Hello\n");
+engine.start("test");
+
+// Collect all frames until end or choice
+const allFrames = collectFrames(engine, "test");
+
+// Partial matching assertions
+assertFrame(allFrames[0], { type: "text", speaker: "A", content: "Hello" });
+
+// Mock audio
+const audio = mockAudioManager();
+engine.on("audio", audio.handler);
 ```
 
 ---
