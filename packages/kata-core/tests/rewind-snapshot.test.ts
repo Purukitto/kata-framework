@@ -21,7 +21,7 @@ describe("Rewind + Snapshot", () => {
     const snapshot = engine.getSnapshot();
     expect(snapshot.undoStack).toBeDefined();
     expect(snapshot.undoStack!.length).toBeGreaterThan(0);
-    expect(snapshot.schemaVersion).toBe(2);
+    expect(snapshot.schemaVersion).toBe(3);
   });
 
   test("loading snapshot restores rewind capability", () => {

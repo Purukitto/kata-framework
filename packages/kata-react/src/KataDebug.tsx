@@ -71,7 +71,12 @@ export function KataDebug() {
             <>
               <div style={{ flex: 1, marginBottom: "20px" }}>
                 {frame.action.type === "text" && (
-                  <div style={{ color: "#00ff00", lineHeight: "1.6" }}>
+                  <div
+                    style={{ color: "#00ff00", lineHeight: "1.6" }}
+                    role="dialog"
+                    aria-live="assertive"
+                    aria-label={frame.a11y?.label}
+                  >
                     <div style={{ marginBottom: "10px" }}>
                       <strong>{frame.action.speaker}:</strong>
                     </div>
@@ -85,6 +90,8 @@ export function KataDebug() {
                       <strong>Choices:</strong>
                     </div>
                     <div
+                      role="group"
+                      aria-label="Choices"
                       style={{
                         display: "flex",
                         flexDirection: "column",

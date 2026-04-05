@@ -1,5 +1,26 @@
 # @kata-framework/test-utils
 
+## 0.2.3
+
+### Patch Changes
+
+- Updated dependencies
+  - @kata-framework/core@0.5.0
+
+## 0.2.2
+
+### Patch Changes
+
+- Updated dependencies
+  - @kata-framework/core@0.4.0
+
+## 0.2.1
+
+### Patch Changes
+
+- Updated dependencies
+  - @kata-framework/core@0.3.0
+
 ## 0.2.0
 
 ### Minor Changes

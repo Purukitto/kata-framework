@@ -1,7 +1,7 @@
 import { z } from "zod";
 import type { GameStateSnapshot, KSONAction } from "../types";
 
-export const CURRENT_SCHEMA_VERSION = 2;
+export const CURRENT_SCHEMA_VERSION = 3;
 
 const KSONActionSchema: z.ZodType<KSONAction> = z.lazy(() =>
   z.union([
@@ -40,6 +40,29 @@ const KSONActionSchema: z.ZodType<KSONAction> = z.lazy(() =>
         z.object({ action: z.literal("fade"), id: z.string(), toVolume: z.number(), durationMs: z.number() }),
       ]),
     }),
+    z.object({
+      type: z.literal("tween"),
+      target: z.string(),
+      property: z.string(),
+      from: z.number().optional(),
+      to: z.number(),
+      duration: z.number(),
+      easing: z.string().optional(),
+    }),
+    z.object({
+      type: z.literal("tween-group"),
+      mode: z.enum(["parallel", "sequence"]),
+      tweens: z.array(
+        z.object({
+          target: z.string(),
+          property: z.string(),
+          from: z.number().optional(),
+          to: z.number(),
+          duration: z.number(),
+          easing: z.string().optional(),
+        })
+      ),
+    }),
   ])
 );
 
@@ -61,6 +84,8 @@ export const GameStateSnapshotSchema = z.object({
       })
     )
     .optional(),
+  locale: z.string().optional(),
+  localeFallback: z.string().optional(),
 });
 
 export type Migrator = (data: any) => any;

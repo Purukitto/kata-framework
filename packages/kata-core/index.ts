@@ -15,6 +15,12 @@ export type { KataPlugin } from "./src/runtime/plugin";
 export { SnapshotManager, CURRENT_SCHEMA_VERSION } from "./src/runtime/snapshot";
 export type { Migrator } from "./src/runtime/snapshot";
 
+// Localization
+export { LocaleManager, parseLocaleYaml } from "./src/i18n/index";
+
+// Accessibility
+export { generateA11yHints } from "./src/a11y/index";
+
 // Audio
 export { NoopAudioManager } from "./src/audio/index";
 export type { AudioManager } from "./src/audio/index";
@@ -44,5 +50,8 @@ export type {
   Diagnostic,
   KataEngineOptions,
   UndoEntry,
+  A11yHints,
+  LocaleOverride,
+  LocaleData,
 } from "./src/types";
 export type { GameState, GameStore } from "./src/runtime/store";

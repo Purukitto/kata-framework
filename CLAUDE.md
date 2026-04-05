@@ -21,6 +21,7 @@ cd packages/kata-core && bun test
 cd packages/kata-react && bun test
 cd packages/kata-cli && bun test
 cd packages/kata-test-utils && bun test
+cd packages/kata-lsp && bun test
 
 # Run a single test file
 bun test packages/kata-core/tests/parser.test.ts
@@ -31,11 +32,24 @@ bun run version            # bump versions
 bun run release            # build + publish
 ```
 
-Each package builds with `tsup` (entry: `index.ts`, outputs CJS + ESM + `.d.ts` into `dist/`).
+## Build
+
+Each package builds with `tsup` (outputs into `dist/`). Notable differences per package:
+
+| Package | Entry | Format | Notes |
+|---------|-------|--------|-------|
+| `kata-core` | `index.ts` + `src/plugins/*.ts` (7 entries) | CJS + ESM + DTS | Multi-entry for subpath exports |
+| `kata-react` | `index.ts` | CJS + ESM + DTS | Externals: `react`, `react-dom`, `@kata-framework/core` |
+| `kata-cli` | `src/index.ts` | ESM only | Adds `#!/usr/bin/env bun` shebang banner for CLI execution |
+| `kata-test-utils` | `index.ts` | CJS + ESM + DTS | External: `@kata-framework/core` |
+| `kata-lsp` | `index.ts` + `src/server.ts` | CJS + ESM + DTS | Two entry points (library + server binary) |
+| `kata-vscode` | `src/extension.ts` | CJS (esbuild) | Bundles for VS Code; externals: `vscode` |
+
+TypeScript uses `"moduleResolution": "bundler"` and `"verbatimModuleSyntax": true` across all packages.
 
 ## Architecture
 
-Bun workspace monorepo with five packages under `packages/`. Workspaces also include `examples/*`.
+Bun workspace monorepo with seven packages under `packages/`. Workspaces also include `examples/*`.
 
 ### `@kata-framework/core` (`packages/kata-core`)
 
@@ -43,19 +57,27 @@ Pure headless engine — no React, no DOM. Internal modules:
 
 | Module | Path | Role |
 |--------|------|------|
-| Parser | `src/parser/index.ts` | Parses `.kata` files → `KSONScene` using gray-matter (frontmatter), unified/remark (markdown + directives) |
+| Parser | `src/parser/index.ts` | Parses `.kata` files → `KSONScene` using gray-matter (frontmatter), unified/remark (markdown + directives). Handles `[wait N]`, `[exec]...[/exec]`, `:::if/elseif/else`, `// comments`, `[tween]`, `[tween-group]` |
 | Store | `src/runtime/store.ts` | Zustand + Immer vanilla store (`createGameStore(initialCtx)`) holding `ctx`, `currentSceneId`, `currentActionIndex`, `history` |
-| Runtime | `src/runtime/index.ts` | `KataEngine extends EventEmitter` — registers scenes, drives playback, emits `"update"`, `"end"`, `"audio"`, `"error"`, `"preload"` events. Supports plugins (`use()`), undo (`back()`), and engine options (`historyDepth`) |
-| Plugin | `src/runtime/plugin.ts` | `KataPlugin` interface + `PluginManager` — hooks: `beforeAction`, `afterAction`, `onChoice`, `beforeSceneChange` |
+| Runtime | `src/runtime/index.ts` | `KataEngine extends EventEmitter` — registers scenes, drives playback, emits `"update"`, `"end"`, `"audio"`, `"error"`, `"preload"` events. Supports plugins (`use()`, `getPlugin()`), undo (`back()`), locale (`setLocale()`), and engine options (`historyDepth`, `locale`) |
+| Plugin | `src/runtime/plugin.ts` | `KataPlugin` interface + `PluginManager` — hooks: `init`, `beforeAction`, `afterAction`, `onChoice`, `beforeSceneChange`, `onEnd` |
 | Evaluator | `src/runtime/evaluator.ts` | `evaluate(code, ctx)` and `interpolate(text, ctx)` — **always `new Function`, never `eval`**. Also `evaluateWithDiagnostic()` and `interpolateWithDiagnostic()` for structured error returns |
 | Diagnostics | `src/parser/diagnostics.ts` | `parseKataWithDiagnostics(source)` — returns `{ scene, diagnostics: Diagnostic[] }` with validation warnings/errors |
 | Snapshot | `src/runtime/snapshot.ts` | `SnapshotManager` — Zod-validated save/load with versioned migration pipeline (`CURRENT_SCHEMA_VERSION`) |
 | Audio | `src/audio/index.ts` | `AudioManager` interface + `NoopAudioManager` — fire-and-forget audio actions that auto-advance |
 | VFS | `src/vfs/index.ts` | `VFSProvider` interface + `LayeredVFS` — layered virtual file system for mod content overlay |
 | Assets | `src/assets/index.ts` | `AssetRegistry` (ID→URL mapping) + `AssetLoader` interface |
-| SceneGraph | `src/assets/sceneGraph.ts` | `SceneGraph` — builds connectivity graph from choice targets; `getReachable()`, `getPreloadSet()` for smart asset preloading |
+| SceneGraph | `src/assets/sceneGraph.ts` | `SceneGraph` — builds connectivity graph from choice targets; `getReachable()`, `getPreloadSet()`, `getOrphans()`, `getDeadEnds()`, `toJSON()`, `toDOT()` |
+| Localization | `src/i18n/index.ts` | `LocaleManager` — per-scene locale overrides, fallback chain, YAML parsing (`parseLocaleYaml`) |
+| Accessibility | `src/a11y/index.ts` | `generateA11yHints(action)` — pure function producing `A11yHints` for each action type |
+| Analytics | `src/plugins/analytics.ts` | `analyticsPlugin()` — tracks scene visits, choice selections, drop-off points |
+| Profanity | `src/plugins/profanity.ts` | `profanityPlugin()` — censors text/choice labels with configurable word lists and replacement strategies |
+| Auto-Save | `src/plugins/auto-save.ts` | `autoSavePlugin()` — automatic snapshots on scene changes, choices, every action, or timed intervals |
+| Logger | `src/plugins/logger.ts` | `loggerPlugin()` — structured lifecycle logging with quiet/normal/verbose levels |
+| Content Warnings | `src/plugins/content-warnings.ts` | `contentWarningsPlugin()` — tag scenes with warning labels, fire callbacks before entry |
+| Validate | `src/plugins/validate.ts` | `validatePlugin()` — runtime plugin validation, integrated into `engine.use()` |
 | Modding | `src/modding/mergeScene.ts` | `mergeScene(base, patch)` — RFC 7396-style scene patching (meta merge, action append/replace/remove) |
-| Types | `src/types.ts` | `KSONScene`, `KSONAction`, `KSONFrame`, `KSONMeta`, `Choice`, `GameStateSnapshot`, `AudioCommand`, `Diagnostic`, `KataEngineOptions`, `UndoEntry` |
+| Types | `src/types.ts` | `KSONScene`, `KSONAction`, `KSONFrame`, `KSONMeta`, `Choice`, `GameStateSnapshot`, `AudioCommand`, `Diagnostic`, `KataEngineOptions`, `UndoEntry`, `A11yHints`, `LocaleOverride`, `LocaleData` |
 
 **Data flow:** `.kata` file → `parseKata()` → `KSONScene` → `engine.registerScene()` → `engine.start(id)` → emits `KSONFrame` on each `engine.next()` / `engine.makeChoice()`.
 
@@ -66,16 +88,18 @@ React 19 bindings that wrap `KataEngine`:
 - `KataProvider` (`src/context.tsx`) — creates a single `KataEngine` instance via `useRef`, exposes it via context.
 - `useKataEngine()` — raw engine access from context.
 - `useKata()` (`src/useKata.ts`) — uses `useSyncExternalStore` to subscribe to engine events; returns `{ frame, state, actions: { start, next, makeChoice } }`.
-- `KataDebug` (`src/KataDebug.tsx`) — optional debug overlay component.
+- `KataDebug` (`src/KataDebug.tsx`) — optional debug overlay component with ARIA attributes (`role`, `aria-live`, `aria-label`).
+- Accessibility hooks (`src/a11y.ts`) — `useReducedMotion()`, `useKeyboardNavigation()`, `useFocusManagement()`.
 
 Depends on `@kata-framework/core` via `workspace:*`.
 
 ### `@kata-framework/cli` (`packages/kata-cli`)
 
-CLI tool exposing a `kata` binary with two commands:
+CLI tool exposing a `kata` binary with three commands:
 
 - `kata build <glob>` — parses `.kata` files and writes `.kson.json` to an output dir (default `dist/kson`)
 - `kata watch <glob>` — build + watch for changes
+- `kata graph <glob>` — visualize scene connections (`--format dot|json`, `--lint` for orphans/dead ends)
 
 Config resolution: CLI args → `kata.config.json` in CWD → defaults (`**/*.kata`, `dist/kson`). Depends on `@kata-framework/core` via `workspace:*`.
 
@@ -90,9 +114,25 @@ Test utility helpers for kata-core consumers:
 
 Depends on `@kata-framework/core` via `workspace:*`.
 
+### `@kata-framework/lsp` (`packages/kata-lsp`)
+
+Language Server Protocol implementation for `.kata` files. Provides:
+
+- **Diagnostics** — undefined variables, unreachable scene targets, duplicate scene IDs, invalid conditions
+- **Autocomplete** — scene IDs, variable names, asset keys based on cursor context
+- **Hover** — variable info, asset URLs, scene target info
+- **Go-to-definition** — navigate from `-> @scene/id` to the target file
+- **Document symbols** — outline with scene IDs, speakers, choice labels
+
+Architecture: Pure handler functions (`src/diagnostics.ts`, `src/completions.ts`, `src/hover.ts`, `src/definition.ts`, `src/symbols.ts`) + `WorkspaceIndex` (`src/workspace.ts`) for cross-file analysis. Server entry point (`src/server.ts`) uses `vscode-languageserver`. Depends on `@kata-framework/core` via `workspace:*`.
+
 ### `kata-vscode` (`packages/kata-vscode`)
 
-VS Code extension providing syntax highlighting for `.kata` files via a TextMate grammar (`syntaxes/kata.tmLanguage.json`). Private package — not published to npm. Has no build step; package/publish via `vsce`.
+VS Code extension providing syntax highlighting, LSP integration, and scene graph visualization for `.kata` files. Launches `@kata-framework/lsp` as language server. Includes `Kata: Show Scene Graph` command (webview with force-directed graph). Private package — not published to npm. Builds with esbuild; package/publish via `vsce`.
+
+### `create-kata-plugin` (`packages/create-kata-plugin`)
+
+CLI scaffolder for new plugin projects. `bun create kata-plugin <name>` generates a `kata-plugin-{name}/` directory with src, tests, tsup config, and package.json (peer dep on `@kata-framework/core`). Also exports `scaffold()`, `normalizeName()`, `validateName()` for programmatic use.
 
 ## `.kata` File Format
 
@@ -104,13 +144,15 @@ Three sections in order:
    - `[bg src="file.mp4"]` — visual action
    - `:: Speaker :: dialogue text` — text action
    - `* [Choice label] -> @scene/id` — choice list (maps to `Choice[]`)
-   - `:::if{cond="expression"} ... :::` — conditional block (evaluated via `evaluate()` at runtime, **not** parse time)
+   - `:::if{cond="expression"} ... :::elseif{cond="..."} ... :::else ... :::` — conditional block with branches (evaluated via `evaluate()` at runtime, **not** parse time)
+   - `[wait 2000]` — wait action (maps to `{ type: "wait", duration: 2000 }`)
+   - `[exec] ... [/exec]` — inline exec block (maps to `{ type: "exec", code: "..." }`)
+   - `// comment` — comment line, stripped during parsing
    - `${expression}` — inline variable interpolation in text
+   - `[tween target="id" property="x" to="400" duration="800" easing="ease-in-out"]` — tween animation action (fire-and-forget)
+   - `[tween-group parallel] ... [/tween-group]` — grouped tweens (parallel or sequence mode)
 
-Additional KSON action types (used programmatically, not in `.kata` syntax):
-- `{ type: "wait", duration: 2000 }` — pause playback
-- `{ type: "exec", code: "..." }` — run logic mid-scene
-- `{ type: "audio", command: { ... } }` — fire-and-forget audio command
+The `{ type: "audio", command: { ... } }` action type has no `.kata` syntax — it is used programmatically in KSON only. Tween and tween-group actions are fire-and-forget (like audio): the engine emits the frame and auto-advances.
 
 ## Key Constraints
 
@@ -118,9 +160,28 @@ Additional KSON action types (used programmatically, not in `.kata` syntax):
 - **Headless:** `kata-core` must remain free of DOM/React dependencies.
 - **KSON as contract:** UI code should only consume `KSONFrame` — never reach into internal engine state directly.
 - Store isolation: Always create the store via `createGameStore(initialCtx)`. Do not share store instances across engine instances.
-- Changesets: Any publishable change to `@kata-framework/core` or `@kata-framework/react` needs a changeset (`bun run changeset`) before merging.
+- Changesets: Any publishable change needs a changeset (`bun run changeset`) before merging.
+- **Plugin imports:** Official plugins use subpath exports (`@kata-framework/core/plugins/analytics`, `./profanity`, `./auto-save`, `./logger`, `./content-warnings`, `./validate`). The `KataPlugin` interface stays in the main entry. The main entry does NOT re-export plugin factories.
 - **Roadmap:** After every phase/milestone build, update `ROADMAP.md` — check off completed items, update the current version line, and mark the phase as complete with the date.
+- **Package READMEs:** Each published package (`packages/*/README.md`) must be updated before release — these are displayed on the npm package page.
 
 ## Testing
 
-Tests use `bun:test` (Bun's native test runner). Test files live in `packages/*/tests/`. Core has ~19 test suites covering parser, runtime, logic/evaluator, snapshots, audio, VFS, assets, scene graph, merge, exports, diagnostics (parser/runtime/format), plugins (lifecycle/management), and rewind (basic/state/limits/snapshot). React has an integration test. CLI has a build test. Test-utils has 4 test suites. Pattern is straightforward arrange-act-assert with event listeners for async verification.
+Tests use `bun:test` (Bun's native test runner). Test files live in `packages/*/tests/`. Pattern is arrange-act-assert with event listeners for async verification.
+
+| Package | Suites | Coverage areas |
+|---------|--------|----------------|
+| `kata-core` | ~53 | Parser, runtime, evaluator, snapshots, audio, VFS, assets, scene graph, merge, exports, diagnostics, plugins (lifecycle, management, validation, exports, isolation), rewind, syntax extensions, tweens, a11y, locale, analytics, profanity, auto-save, logger, content-warnings, guide examples |
+| `kata-react` | 1 | Integration test |
+| `kata-cli` | 2 | Build + graph commands |
+| `kata-test-utils` | 4 | createTestEngine, collectFrames, assertFrame, mockAudioManager |
+| `kata-lsp` | 5 | Diagnostics, completions, hover, goto-definition, symbols |
+| `create-kata-plugin` | 2 | Scaffold output, naming validation |
+
+## Parser Patterns
+
+**Pre-extraction:** Block directives like `[exec]...[/exec]` and `[tween-group]...[/tween-group]` are extracted via regex *before* the markdown/remark pipeline runs, replaced with placeholders, then resolved back into KSON actions after parsing. Follow this same pattern when adding new block-level directives.
+
+**Snapshot migrations:** `CURRENT_SCHEMA_VERSION` in `src/runtime/snapshot.ts` tracks the schema version. To add a migration: bump the version, add a Zod schema update, and register a `fromVersion → fromVersion+1` migrator in the `KataEngine` constructor (see the v1→v2 and v2→v3 examples there).
+
+**Plugin pattern:** All official plugins use the closure factory pattern (see `src/plugins/analytics.ts` as reference). Each plugin lives in `src/plugins/{name}.ts`, extends `KataPlugin` with a custom interface, and is importable only via subpath export (`@kata-framework/core/plugins/{name}`). When adding a new plugin: create the source file, add its entry to `tsup.config.ts`, add the subpath to `package.json` `"exports"`, and write tests. Do NOT re-export from `index.ts`. Plugins that need engine access use the `init` hook to capture the engine reference via closure.

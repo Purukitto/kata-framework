@@ -1,17 +1,47 @@
 {
   "name": "@kata-framework/core",
-  "version": "0.2.0",
+  "version": "0.5.0",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "type": "module",
+  "sideEffects": false,
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
     },
-    "./src/*": "./src/*"
+    "./plugins/analytics": {
+      "types": "./dist/src/plugins/analytics.d.ts",
+      "import": "./dist/src/plugins/analytics.js",
+      "require": "./dist/src/plugins/analytics.cjs"
+    },
+    "./plugins/profanity": {
+      "types": "./dist/src/plugins/profanity.d.ts",
+      "import": "./dist/src/plugins/profanity.js",
+      "require": "./dist/src/plugins/profanity.cjs"
+    },
+    "./plugins/auto-save": {
+      "types": "./dist/src/plugins/auto-save.d.ts",
+      "import": "./dist/src/plugins/auto-save.js",
+      "require": "./dist/src/plugins/auto-save.cjs"
+    },
+    "./plugins/logger": {
+      "types": "./dist/src/plugins/logger.d.ts",
+      "import": "./dist/src/plugins/logger.js",
+      "require": "./dist/src/plugins/logger.cjs"
+    },
+    "./plugins/content-warnings": {
+      "types": "./dist/src/plugins/content-warnings.d.ts",
+      "import": "./dist/src/plugins/content-warnings.js",
+      "require": "./dist/src/plugins/content-warnings.cjs"
+    },
+    "./plugins/validate": {
+      "types": "./dist/src/plugins/validate.d.ts",
+      "import": "./dist/src/plugins/validate.js",
+      "require": "./dist/src/plugins/validate.cjs"
+    }
   },
   "files": [
     "dist"

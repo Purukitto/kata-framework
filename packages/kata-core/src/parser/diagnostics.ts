@@ -10,6 +10,9 @@ export function parseKataWithDiagnostics(source: string): {
 } {
   const diagnostics: Diagnostic[] = [];
 
+  // Pre-parse checks on raw source
+  preValidate(source, diagnostics);
+
   let scene: KSONScene;
   try {
     scene = parseKata(source);
@@ -39,6 +42,55 @@ export function parseKataWithDiagnostics(source: string): {
   return { scene, diagnostics };
 }
 
+/**
+ * Pre-parse validation on the raw source text.
+ */
+function preValidate(source: string | null, diagnostics: Diagnostic[]): void {
+  if (!source) return;
+  // Check for unclosed [exec] blocks
+  const hasExecOpen = /\[exec\]/.test(source);
+  const hasExecClose = /\[\/exec\]/.test(source);
+  if (hasExecOpen && !hasExecClose) {
+    const line = findLineNumber(source, "[exec]");
+    diagnostics.push({
+      level: "error",
+      message: "Unclosed [exec] block — missing [/exec]",
+      line,
+    });
+  }
+
+  // Check for unclosed [tween-group] blocks
+  const hasTweenGroupOpen = /\[tween-group\s/.test(source);
+  const hasTweenGroupClose = /\[\/tween-group\]/.test(source);
+  if (hasTweenGroupOpen && !hasTweenGroupClose) {
+    const line = findLineNumber(source, "[tween-group");
+    diagnostics.push({
+      level: "error",
+      message: "Unclosed [tween-group] block — missing [/tween-group]",
+      line,
+    });
+  }
+
+  // Check for orphaned :::else or :::elseif without :::if
+  const lines = source.split("\n");
+  let insideIf = 0;
+  for (let i = 0; i < lines.length; i++) {
+    const trimmed = lines[i]!.trim();
+    if (trimmed.startsWith(":::if")) insideIf++;
+    if (trimmed === ":::" && insideIf > 0) insideIf--;
+    if (
+      (trimmed.startsWith(":::else") || trimmed.startsWith(":::elseif")) &&
+      insideIf === 0
+    ) {
+      diagnostics.push({
+        level: "error",
+        message: `:::${trimmed.startsWith(":::elseif") ? "elseif" : "else"} without preceding :::if`,
+        line: i + 1,
+      });
+    }
+  }
+}
+
 function validateActions(
   actions: KSONAction[],
   sceneId: string,
@@ -64,6 +116,77 @@ function validateActions(
       }
       // Recurse into then-block
       validateActions(action.then, sceneId, source, diagnostics);
+
+      // Recurse into elseIf branches
+      if (action.elseIf) {
+        for (const branch of action.elseIf) {
+          try {
+            new Function(`return ${branch.condition}`);
+          } catch {
+            const line = findLineNumber(source, branch.condition);
+            diagnostics.push({
+              level: "error",
+              message: `Invalid condition expression: ${branch.condition}`,
+              sceneId,
+              line,
+              actionIndex: i,
+            });
+          }
+          validateActions(branch.then, sceneId, source, diagnostics);
+        }
+      }
+
+      // Recurse into else branch
+      if (action.else) {
+        validateActions(action.else, sceneId, source, diagnostics);
+      }
+    }
+
+    if (action.type === "tween") {
+      if (!action.target) {
+        diagnostics.push({
+          level: "warning",
+          message: "[tween] directive missing target",
+          sceneId,
+          actionIndex: i,
+        });
+      }
+      if (!action.duration) {
+        diagnostics.push({
+          level: "warning",
+          message: "[tween] directive missing duration",
+          sceneId,
+          actionIndex: i,
+        });
+      }
+      if (action.to === undefined || isNaN(action.to)) {
+        diagnostics.push({
+          level: "warning",
+          message: "[tween] directive missing or invalid 'to' value",
+          sceneId,
+          actionIndex: i,
+        });
+      }
+    }
+
+    if (action.type === "tween-group") {
+      if (!action.tweens || action.tweens.length === 0) {
+        diagnostics.push({
+          level: "warning",
+          message: "[tween-group] contains no tweens",
+          sceneId,
+          actionIndex: i,
+        });
+      }
+    }
+
+    if (action.type === "wait" && action.duration === 0) {
+      diagnostics.push({
+        level: "warning",
+        message: "[wait] directive missing duration value",
+        sceneId,
+        actionIndex: i,
+      });
     }
 
     if (action.type === "text") {

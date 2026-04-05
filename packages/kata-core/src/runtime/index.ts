@@ -3,9 +3,13 @@ import { createGameStore, type GameState } from "./store";
 import { evaluate, interpolate } from "./evaluator";
 import { evaluateWithDiagnostic, interpolateWithDiagnostic } from "./evaluator";
 import { SnapshotManager, type Migrator } from "./snapshot";
-import { PluginManager, type KataPlugin } from "./plugin";
+import { PluginManager } from "./plugin";
+import type { KataPlugin } from "./plugin";
+import { validatePlugin } from "../plugins/validate";
 import type { AssetRegistry } from "../assets/index";
-import type { KSONScene, KSONFrame, KSONAction, GameStateSnapshot, KataEngineOptions, UndoEntry } from "../types";
+import { generateA11yHints } from "../a11y/index";
+import { LocaleManager } from "../i18n/index";
+import type { KSONScene, KSONFrame, KSONAction, GameStateSnapshot, KataEngineOptions, UndoEntry, LocaleOverride } from "../types";
 
 export class KataEngine extends EventEmitter {
   private store: ReturnType<typeof createGameStore>;
@@ -16,6 +20,7 @@ export class KataEngine extends EventEmitter {
   private undoStack: UndoEntry[] = [];
   private historyDepth: number;
   private hasStarted = false;
+  private localeManager = new LocaleManager();
 
   constructor(initialCtx: Record<string, any> = {}, options: KataEngineOptions = {}) {
     super();
@@ -23,17 +28,44 @@ export class KataEngine extends EventEmitter {
     this.snapshotManager = new SnapshotManager();
     this.historyDepth = options.historyDepth ?? 50;
 
+    if (options.locale) this.localeManager.setLocale(options.locale);
+    if (options.localeFallback) this.localeManager.setFallback(options.localeFallback);
+
     // Register built-in v1→v2 migrator
     this.snapshotManager.registerMigration(1, (data: any) => ({
       ...data,
       undoStack: [],
       schemaVersion: 2,
     }));
+
+    // Register built-in v2→v3 migrator (adds locale fields)
+    this.snapshotManager.registerMigration(2, (data: any) => ({
+      ...data,
+      schemaVersion: 3,
+    }));
+  }
+
+  // Locale API
+  setLocale(locale: string): void {
+    this.localeManager.setLocale(locale);
+  }
+
+  setLocaleFallback(fallback: string): void {
+    this.localeManager.setFallback(fallback);
+  }
+
+  registerLocale(sceneId: string, locale: string, overrides: LocaleOverride[]): void {
+    this.localeManager.registerLocale(sceneId, locale, overrides);
   }
 
   // Plugin API
   use(plugin: KataPlugin): void {
+    const result = validatePlugin(plugin);
+    if (!result.valid) {
+      throw new Error(`Invalid plugin: ${result.errors.join("; ")}`);
+    }
     this.pluginManager.register(plugin);
+    plugin.init?.(this);
   }
 
   getPlugins(): string[] {
@@ -42,6 +74,10 @@ export class KataEngine extends EventEmitter {
 
   removePlugin(name: string): void {
     this.pluginManager.remove(name);
+  }
+
+  getPlugin<T extends KataPlugin = KataPlugin>(name: string): T | undefined {
+    return this.pluginManager.getPlugin(name) as T | undefined;
   }
 
   registerScene(scene: KSONScene): void {
@@ -148,6 +184,7 @@ export class KataEngine extends EventEmitter {
       this.emit("audio", action.command);
       const totalActions = scene.actions.length;
       if (currentIndex >= totalActions - 1) {
+        if (this.pluginManager.hasPlugins) this.pluginManager.runOnEnd(sceneId);
         this.emit("end", { sceneId });
         return;
       }
@@ -155,6 +192,7 @@ export class KataEngine extends EventEmitter {
       this.emitFrame();
       return;
     }
+
 
     // Handle condition actions
     if (action && action.type === "condition") {
@@ -173,6 +211,31 @@ export class KataEngine extends EventEmitter {
       if (conditionResult) {
         const thenActions = [...action.then];
         scene.actions.splice(currentIndex + 1, 0, ...thenActions);
+      } else {
+        // Try elseIf branches
+        let matched = false;
+        if (action.elseIf) {
+          for (const branch of action.elseIf) {
+            const { result: branchResult, error: branchError } = evaluateWithDiagnostic(branch.condition, state.ctx);
+            if (branchError) {
+              this.emit("error", {
+                level: "error",
+                message: `Condition evaluation failed: ${branchError}`,
+                sceneId,
+                actionIndex: currentIndex,
+              });
+            }
+            if (branchResult) {
+              scene.actions.splice(currentIndex + 1, 0, ...branch.then);
+              matched = true;
+              break;
+            }
+          }
+        }
+        // Fall through to else branch
+        if (!matched && action.else) {
+          scene.actions.splice(currentIndex + 1, 0, ...action.else);
+        }
       }
     }
 
@@ -180,6 +243,7 @@ export class KataEngine extends EventEmitter {
 
     // Check if we're at the end
     if (currentIndex >= totalActions - 1) {
+      if (this.pluginManager.hasPlugins) this.pluginManager.runOnEnd(sceneId);
       this.emit("end", { sceneId });
       return;
     }
@@ -222,13 +286,17 @@ export class KataEngine extends EventEmitter {
 
   getSnapshot(): GameStateSnapshot {
     const state = this.store.getState();
+    const locale = this.localeManager.getLocale();
+    const localeFallback = this.localeManager.getFallback();
     const snapshot: GameStateSnapshot = {
-      schemaVersion: 2,
+      schemaVersion: 3,
       ctx: structuredClone(state.ctx),
       currentSceneId: state.currentSceneId,
       currentActionIndex: state.currentActionIndex,
       history: [...state.history],
       undoStack: structuredClone(this.undoStack),
+      ...(locale ? { locale } : {}),
+      ...(localeFallback ? { localeFallback } : {}),
     };
 
     // Include expanded actions if a scene is active (handles condition splicing)
@@ -260,6 +328,10 @@ export class KataEngine extends EventEmitter {
 
     // Restore undo stack
     this.undoStack = snapshot.undoStack ?? [];
+
+    // Restore locale settings
+    if (snapshot.locale !== undefined) this.localeManager.setLocale(snapshot.locale);
+    if (snapshot.localeFallback !== undefined) this.localeManager.setFallback(snapshot.localeFallback);
 
     // Restore store state
     this.store.getState().restoreState({
@@ -329,6 +401,7 @@ export class KataEngine extends EventEmitter {
       this.emit("audio", action.command);
       const totalActions = scene.actions.length;
       if (currentIndex >= totalActions - 1) {
+        if (this.pluginManager.hasPlugins) this.pluginManager.runOnEnd(sceneId);
         this.emit("end", { sceneId });
         return;
       }
@@ -337,11 +410,55 @@ export class KataEngine extends EventEmitter {
       return;
     }
 
+    // Tween actions are fire-and-forget: emit frame then auto-advance
+    if (action.type === "tween" || action.type === "tween-group") {
+      // Build and emit the tween frame so UI receives tween data
+      let processedAction: KSONAction = action;
+
+      if (this.pluginManager.hasPlugins) {
+        const transformed = this.pluginManager.runBeforeAction(processedAction, state.ctx);
+        if (transformed === null) {
+          return;
+        }
+        processedAction = transformed;
+      }
+
+      const frame: KSONFrame = {
+        meta: scene.meta,
+        action: processedAction,
+        state: {
+          ctx: state.ctx,
+          currentSceneId: state.currentSceneId,
+          currentActionIndex: state.currentActionIndex,
+          history: state.history,
+        },
+        a11y: generateA11yHints(processedAction),
+      };
+      this.emit("update", frame);
+
+      if (this.pluginManager.hasPlugins) {
+        this.pluginManager.runAfterAction(processedAction, state.ctx);
+      }
+
+      // Auto-advance to next action
+      const totalActions = scene.actions.length;
+      if (currentIndex >= totalActions - 1) {
+        if (this.pluginManager.hasPlugins) this.pluginManager.runOnEnd(sceneId);
+        this.emit("end", { sceneId });
+        return;
+      }
+      this.store.getState().nextAction();
+      this.emitFrame();
+      return;
+    }
+
+    // Apply locale overrides before interpolation
+    let processedAction: KSONAction = this.localeManager.resolveText(sceneId, currentIndex, action);
+
     // Interpolate text content for text actions with diagnostics
-    let processedAction: KSONAction = action;
-    if (action.type === "text") {
-      const { result, errors } = interpolateWithDiagnostic(action.content, state.ctx);
-      processedAction = { ...action, content: result };
+    if (processedAction.type === "text") {
+      const { result, errors } = interpolateWithDiagnostic(processedAction.content, state.ctx);
+      processedAction = { ...processedAction, content: result };
       for (const error of errors) {
         this.emit("error", {
           level: "error",
@@ -370,6 +487,7 @@ export class KataEngine extends EventEmitter {
         currentActionIndex: state.currentActionIndex,
         history: state.history,
       },
+      a11y: generateA11yHints(processedAction),
     };
 
     this.emit("update", frame);

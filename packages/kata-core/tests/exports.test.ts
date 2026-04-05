@@ -27,7 +27,7 @@ describe("barrel exports", () => {
     expect(evaluate).toBeDefined();
     expect(interpolate).toBeDefined();
     expect(SnapshotManager).toBeDefined();
-    expect(CURRENT_SCHEMA_VERSION).toBe(2);
+    expect(CURRENT_SCHEMA_VERSION).toBe(3);
   });
 
   test("parseKata is callable through barrel", () => {

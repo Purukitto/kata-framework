@@ -225,7 +225,7 @@ describe("loadSnapshot", () => {
 });
 
 describe("SnapshotManager", () => {
-  test("migration pipeline transforms v0 -> v2", () => {
+  test("migration pipeline transforms v0 -> v3", () => {
     const manager = new SnapshotManager();
     manager.registerMigration(0, (data: any) => ({
       ...data,
@@ -237,6 +237,10 @@ describe("SnapshotManager", () => {
       undoStack: [],
       schemaVersion: 2,
     }));
+    manager.registerMigration(2, (data: any) => ({
+      ...data,
+      schemaVersion: 3,
+    }));
 
     const result = manager.migrate({
       schemaVersion: 0,
@@ -245,7 +249,7 @@ describe("SnapshotManager", () => {
       currentActionIndex: 0,
     });
 
-    expect(result.schemaVersion).toBe(2);
+    expect(result.schemaVersion).toBe(3);
     expect(result.history).toEqual([]);
     expect(result.ctx).toEqual({ x: 1 });
   });
@@ -264,7 +268,7 @@ describe("SnapshotManager", () => {
     ).toThrow(/No migrator registered for schema version 0/);
   });
 
-  test("multi-step migration v0 -> v1 -> v2", () => {
+  test("multi-step migration v0 -> v1 -> v2 -> v3", () => {
     const manager = new SnapshotManager();
 
     manager.registerMigration(0, (data: any) => ({
@@ -276,6 +280,10 @@ describe("SnapshotManager", () => {
       ...data,
       undoStack: [],
       schemaVersion: 2,
+    }));
+    manager.registerMigration(2, (data: any) => ({
+      ...data,
+      schemaVersion: 3,
     }));
 
     const result = manager.migrate({

@@ -5,11 +5,12 @@
 >
 > Each phase is a versioned release. At the end of every phase:
 > 1. All new tests pass (`bun test`)
-> 2. README is updated with guide-like documentation for every new user-facing feature
-> 3. Changeset is created and packages are published
-> 4. **This roadmap is updated** — check off completed items, update current version
+> 2. Root README is updated with guide-like documentation for every new user-facing feature
+> 3. **Package READMEs updated** (`packages/*/README.md`) — these are displayed on the npm package page
+> 4. Changeset is created and packages are published
+> 5. **This roadmap is updated** — check off completed items, update current version
 
-Current version: `0.2.0` — Parser, runtime, store, audio, save/load, modding (VFS + scene merge), asset preloading, React bindings, CLI, VS Code syntax highlighting, **plugin system, undo/rewind, error diagnostics, test utilities**.
+Current version: `0.5.0` — Parser, runtime, store, audio, save/load, modding (VFS + scene merge), asset preloading, React bindings, CLI, VS Code syntax highlighting, plugin system, undo/rewind, error diagnostics, test utilities, LSP (diagnostics, autocomplete, hover, go-to-def, symbols), scene graph visualization (CLI + VS Code), syntax extensions (`[wait]`, `[exec]`, `:::else`/`:::elseif`, comments), localization (i18n), branching analytics plugin, accessibility (a11y hints + React ARIA/keyboard hooks), animation/tween timelines, **plugin ecosystem (subpath exports, profanity filter, auto-save, debug logger, content warnings, validation utility, plugin scaffolder, authoring guide)**.
 
 ---
 
@@ -243,9 +244,11 @@ engine.on("error", (diagnostic) => {
 
 ---
 
-## Phase 2 — Content Authoring `v0.3.0`
+## Phase 2 — Content Authoring `v0.3.0` ✅ COMPLETE
 
 The engine is extensible. Now make writing `.kata` files a joy — better tooling, richer syntax, visual feedback on story structure.
+
+> **Completed 2026-03-21.** All 3 features shipped, 150 tests pass, all packages build.
 
 ---
 
@@ -411,20 +414,23 @@ ctx.suspicion += 10;
 
 ### Phase 2 Release Checklist
 
-- [ ] All new tests green
-- [ ] README updated:
-  - [ ] New syntax directives added to Narrative Body table (`[wait]`, `[exec]`, `:::else`)
-  - [ ] LSP section: what it catches, how to activate
-  - [ ] Scene graph CLI command documented in CLI Usage
-  - [ ] `@kata-framework/lsp` and `kata-vscode` updates in Packages table
-- [ ] Changesets created for `kata-core` (minor), `kata-cli` (minor), `kata-lsp` (initial), `kata-vscode` (minor)
-- [ ] `bun run release` — publish `@kata-framework/core@0.3.0`, `@kata-framework/cli@0.1.0`, `@kata-framework/lsp@0.1.0`
+- [x] All new tests green (150 tests across 36 files)
+- [x] Root README updated:
+  - [x] New syntax directives added to Narrative Body table (`[wait]`, `[exec]`, `:::else`, `:::elseif`, `// comments`)
+  - [x] LSP section: diagnostics, autocomplete, hover, go-to-def, symbols
+  - [x] Scene graph CLI command documented in CLI Usage
+  - [x] `@kata-framework/lsp` and `kata-vscode` updates in Packages table
+- [x] Package READMEs updated (`kata-core`, `kata-react`, `kata-cli`, `kata-test-utils`, `kata-lsp`)
+- [x] Changesets created for `kata-core` (minor), `kata-lsp` (initial)
+- [x] `bun run release` — published `@kata-framework/core@0.3.0`, `@kata-framework/lsp@0.2.0`, `@kata-framework/react@0.1.2`, `@kata-framework/test-utils@0.2.1`
 
 ---
 
-## Phase 3 — Reach & Intelligence `v0.4.0`
+## Phase 3 — Reach & Intelligence `v0.4.0` ✅ COMPLETE
 
 The authoring experience is solid. Now make narratives accessible to more audiences and give authors data to improve their stories.
+
+> **Completed 2026-03-22.** All 4 features shipped, 218 tests pass, all packages build.
 
 ---
 
@@ -503,7 +509,7 @@ engine.registerLocale("intro", "ja", overrides);
 **API surface:**
 
 ```ts
-import { analyticsPlugin } from "@kata-framework/core";
+import { analyticsPlugin } from "@kata-framework/core/plugins/analytics";
 
 engine.use(analyticsPlugin());
 
@@ -672,27 +678,374 @@ const json = engine.getPlugin("analytics").toJSON();
 
 ### Phase 3 Release Checklist
 
-- [ ] All new tests green
-- [ ] README updated:
-  - [ ] Localization section with locale file format and API
-  - [ ] Analytics plugin usage example
-  - [ ] Accessibility section: what comes for free, how to customize
-  - [ ] Tween/animation syntax in Narrative Body table
-  - [ ] New KSON action types (`tween`, `tween-group`) documented
-- [ ] Changesets created for `kata-core` (minor), `kata-react` (minor)
-- [ ] `bun run release` — publish `@kata-framework/core@0.4.0`, `@kata-framework/react@0.4.0`
+- [x] All new tests green (218 tests across 51 files)
+- [x] Root README updated:
+  - [x] Localization section with locale file format and API
+  - [x] Analytics plugin usage example
+  - [x] Accessibility section: what comes for free, how to customize
+  - [x] Tween/animation syntax in Narrative Body table
+  - [x] New KSON action types (`tween`, `tween-group`) documented
+- [x] Package READMEs updated for affected packages (`kata-core`, `kata-react`)
+- [x] Changesets created for `kata-core` (minor), `kata-react` (minor)
+- [x] `bun run release` — publish `@kata-framework/core@0.4.0`, `@kata-framework/react@0.4.0`
 
 ---
 
-## Phase 4 — Multiplayer `v0.5.0`
+## Phase 4 — Plugin Ecosystem `v0.5.0` ✅ COMPLETE
+
+The engine is extensible (Phase 1) and ships one official plugin (analytics, Phase 3). Now build out the plugin ecosystem — more official plugins, a comprehensive authoring guide, and distribution tooling so the community can create and share their own.
+
+> **Completed 2026-03-23.** 6 plugins (analytics subpath + 4 new + validate), scaffolder, authoring guide, and catalog shipped. 272 kata-core tests pass, all packages build.
+
+---
+
+### 4.1 Plugin Subpath Exports (Tree-Shakeable Architecture)
+
+**What:** Restructure `@kata-framework/core` so that plugins are importable via isolated subpath exports. Each plugin gets its own entry point — consumers only pay for what they import.
+
+**Why:** Currently, `analyticsPlugin` is bundled into the main `@kata-framework/core` entry point. Even if you never use it, it's in your bundle. As we add more official plugins, this becomes untenable. Subpath exports guarantee zero overhead for unused plugins regardless of the consumer's bundler capabilities.
+
+**Import convention:**
+
+```ts
+// Core engine — zero plugin code included
+import { KataEngine, parseKata } from "@kata-framework/core";
+
+// Each plugin is a separate import — only what you use ships in your bundle
+import { analyticsPlugin } from "@kata-framework/core/plugins/analytics";
+import { profanityPlugin } from "@kata-framework/core/plugins/profanity";
+import { autoSavePlugin } from "@kata-framework/core/plugins/auto-save";
+import { loggerPlugin } from "@kata-framework/core/plugins/logger";
+import { contentWarningsPlugin } from "@kata-framework/core/plugins/content-warnings";
+
+// Plugin validation utility (also isolated)
+import { validatePlugin } from "@kata-framework/core/plugins/validate";
+```
+
+**Implementation:**
+
+- **`package.json` `"exports"` field** — map each subpath to its own built entry point:
+  ```json
+  {
+    "exports": {
+      ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js", "require": "./dist/index.cjs" },
+      "./plugins/analytics": { "types": "./dist/plugins/analytics.d.ts", "import": "./dist/plugins/analytics.js", "require": "./dist/plugins/analytics.cjs" },
+      "./plugins/profanity": { "types": "./dist/plugins/profanity.d.ts", "import": "./dist/plugins/profanity.js", "require": "./dist/plugins/profanity.cjs" },
+      "./plugins/auto-save": { "types": "./dist/plugins/auto-save.d.ts", "import": "./dist/plugins/auto-save.js", "require": "./dist/plugins/auto-save.cjs" },
+      "./plugins/logger": { "types": "./dist/plugins/logger.d.ts", "import": "./dist/plugins/logger.js", "require": "./dist/plugins/logger.cjs" },
+      "./plugins/content-warnings": { "types": "./dist/plugins/content-warnings.d.ts", "import": "./dist/plugins/content-warnings.js", "require": "./dist/plugins/content-warnings.cjs" },
+      "./plugins/validate": { "types": "./dist/plugins/validate.d.ts", "import": "./dist/plugins/validate.js", "require": "./dist/plugins/validate.cjs" }
+    }
+  }
+  ```
+
+- **`"sideEffects": false`** — tells bundlers the entire package is tree-shakeable as a safety net
+
+- **tsup multi-entry** — build each plugin as a separate entry point:
+  ```ts
+  // tsup.config.ts
+  entry: [
+    "index.ts",
+    "src/plugins/analytics.ts",
+    "src/plugins/profanity.ts",
+    "src/plugins/auto-save.ts",
+    "src/plugins/logger.ts",
+    "src/plugins/content-warnings.ts",
+    "src/plugins/validate.ts",
+  ]
+  ```
+
+- **Remove plugin re-exports from `index.ts`** — the main entry no longer exports plugin factories. Plugin types (`KataPlugin` interface) remain in the main entry since they're needed by the engine.
+
+- **Backward compatibility** — existing `import { analyticsPlugin } from "@kata-framework/core"` will stop working. This is a breaking change within the minor version, but since 0.x semver allows it and we're shipping it alongside the new plugins, it's the right time.
+
+**TDD test plan:**
+1. `plugin-exports.test.ts`
+   - Importing from `@kata-framework/core` does NOT include any plugin code
+   - Importing from `@kata-framework/core/plugins/analytics` returns the `analyticsPlugin` factory
+   - Each plugin subpath is independently importable
+   - `KataPlugin` type is still available from the main entry
+2. `plugin-isolation.test.ts`
+   - Each plugin entry point only depends on core types, not on other plugins
+   - Plugin subpath modules can be used without importing the main entry
+
+---
+
+### 4.2 Official Plugins
+
+**What:** A suite of opt-in, zero-dependency plugins shipped inside `kata-core` under isolated subpath exports. Each uses the existing `KataPlugin` interface — no engine changes required.
+
+**Why:** The analytics plugin proved the pattern. Authors keep asking for the same features: content filtering, auto-save, debug logging, content warnings. Shipping these as official plugins means they're maintained, tested, and documented alongside the engine.
+
+**Plugins:**
+
+#### 4.2.1 Profanity Filter Plugin
+
+```ts
+import { profanityPlugin } from "@kata-framework/core/plugins/profanity";
+
+engine.use(profanityPlugin({
+  words: ["badword1", "badword2"],
+  replacement: "***",             // or a custom function
+  scope: "text",                  // "text" | "choice" | "all"
+}));
+```
+
+- Uses `beforeAction` hook to scan and censor `text` content and `choice` labels
+- Configurable word list, replacement strategy (fixed string, per-character mask, or custom function)
+- Scopes: `"text"` (dialogue only), `"choice"` (choice labels only), `"all"` (both)
+
+**TDD test plan:**
+1. `profanity-basic.test.ts`
+   - Censors matching words in text actions
+   - Censors matching words in choice labels when scope is `"all"` or `"choice"`
+   - Does NOT censor when scope excludes the action type
+   - Case-insensitive matching
+   - Partial word matching is configurable (avoid censoring "assassin" → "***assin")
+2. `profanity-config.test.ts`
+   - Custom replacement string works
+   - Custom replacement function receives the matched word
+   - Per-character mask (`"****"` for 4-letter word) works
+   - Empty word list is a no-op (plugin passes through)
+   - Words can be added/removed at runtime via plugin API
+
+#### 4.2.2 Auto-Save Plugin
+
+```ts
+import { autoSavePlugin } from "@kata-framework/core/plugins/auto-save";
+
+const autoSave = autoSavePlugin({
+  interval: "scene-change",       // "scene-change" | "choice" | "every-action" | number (ms)
+  maxSlots: 3,                    // rotate through N save slots
+  onSave: (snapshot, slotIndex) => localStorage.setItem(`save-${slotIndex}`, JSON.stringify(snapshot)),
+});
+engine.use(autoSave);
+
+autoSave.getSlots();    // [{ index: 0, timestamp, sceneId }, ...]
+autoSave.pause();       // temporarily disable
+autoSave.resume();
+```
+
+- Uses `beforeSceneChange` and/or `afterAction` hooks depending on interval mode
+- Calls `engine.getSnapshot()` internally, passes result to user-provided `onSave` callback
+- Slot rotation: oldest slot is overwritten when `maxSlots` is exceeded
+- Pause/resume for cutscenes or menus where saving is inappropriate
+
+**TDD test plan:**
+1. `autosave-triggers.test.ts`
+   - `"scene-change"` triggers save on scene transitions only
+   - `"choice"` triggers save when a choice is made
+   - `"every-action"` triggers save on every action
+   - Numeric interval triggers save on a timer (tested with fake timers)
+2. `autosave-slots.test.ts`
+   - Saves rotate through `maxSlots` slots
+   - `getSlots()` returns metadata (timestamp, sceneId) without full snapshot data
+   - Oldest slot is overwritten when full
+3. `autosave-control.test.ts`
+   - `pause()` stops saves; `resume()` re-enables them
+   - Pausing during a scene transition skips that save
+   - Plugin can be removed and re-added without losing slot metadata
+
+#### 4.2.3 Debug Logger Plugin
+
+```ts
+import { loggerPlugin } from "@kata-framework/core/plugins/logger";
+
+engine.use(loggerPlugin({
+  level: "verbose",               // "quiet" | "normal" | "verbose"
+  output: (entry) => console.log(entry),  // custom sink
+}));
+```
+
+- Hooks into ALL plugin lifecycle points: `beforeAction`, `afterAction`, `onChoice`, `beforeSceneChange`, `onEnd`
+- Structured log entries: `{ timestamp, hook, sceneId, actionIndex, actionType, data }`
+- Three verbosity levels: `quiet` (errors only), `normal` (scene changes + choices), `verbose` (every action)
+- Custom output sink — defaults to `console.log`, can be redirected to file, WebSocket, etc.
+
+**TDD test plan:**
+1. `logger-hooks.test.ts`
+   - Logs `beforeAction` and `afterAction` for text actions
+   - Logs `onChoice` with choice ID and label
+   - Logs `beforeSceneChange` with from/to scene IDs
+   - Logs `onEnd` with scene ID
+2. `logger-levels.test.ts`
+   - `"quiet"` only logs errors (nothing for normal flow)
+   - `"normal"` logs scene changes and choices but not every action
+   - `"verbose"` logs everything
+3. `logger-output.test.ts`
+   - Custom output sink receives structured entries
+   - Entries include timestamp, hook name, sceneId, actionIndex
+
+#### 4.2.4 Content Warnings Plugin
+
+```ts
+import { contentWarningsPlugin } from "@kata-framework/core/plugins/content-warnings";
+
+const cw = contentWarningsPlugin({
+  warnings: {
+    "dark-forest": ["horror", "violence"],
+    "romance-arc": ["romance", "mature-themes"],
+  },
+  onWarn: (sceneId, tags) => { /* show UI warning before scene loads */ },
+});
+engine.use(cw);
+
+cw.getWarnings("dark-forest"); // ["horror", "violence"]
+cw.addWarning("new-scene", ["spoilers"]);
+```
+
+- Uses `beforeSceneChange` to fire `onWarn` callback before entering tagged scenes
+- Authors register warning tags per scene ID
+- Warning tags are arbitrary strings — the framework doesn't prescribe a taxonomy
+- `onWarn` callback can be async — if it returns a promise, the warning is purely informational (engine doesn't block)
+
+**TDD test plan:**
+1. `cw-basic.test.ts`
+   - `onWarn` fires before entering a tagged scene
+   - `onWarn` does NOT fire for untagged scenes
+   - Multiple tags are passed as an array
+   - `getWarnings()` returns the tags for a given scene
+2. `cw-management.test.ts`
+   - `addWarning()` adds tags at runtime
+   - Tags can be added for scenes that haven't been registered yet
+   - Duplicate tags are deduplicated
+3. `cw-integration.test.ts`
+   - Warning fires on `makeChoice()` that transitions to a tagged scene
+   - Warning fires on `start()` for a tagged scene
+   - Works alongside other plugins (ordering respected)
+
+---
+
+### 4.3 Plugin Authoring Guide
+
+**What:** A comprehensive `docs/plugins.md` guide that teaches developers how to build, test, and publish their own Kata plugins.
+
+**Why:** The `KataPlugin` interface is simple, but building a good plugin requires understanding hook ordering, return conventions, state management patterns, and the engine's event flow. A guide lowers the barrier from "I can read the type" to "I can ship a plugin."
+
+**Contents:**
+
+1. **Quick Start** — minimal plugin in 10 lines
+2. **The KataPlugin Interface** — every hook explained with when it fires, what it receives, what it returns
+   - `beforeAction(action, ctx)` — transform or skip actions; return `null` to skip, return action (mutated or not) to continue
+   - `afterAction(action, ctx)` — observe after frame emission; no return value
+   - `onChoice(choice, ctx)` — observe when a choice is selected
+   - `beforeSceneChange(fromId, toId, ctx)` — observe scene transitions
+   - `onEnd(sceneId)` — observe when a scene reaches its end
+3. **State Management Patterns**
+   - Closure pattern (like `analyticsPlugin()`) — state lives in the factory's closure
+   - Class pattern — `class MyPlugin implements KataPlugin` with instance fields
+   - When to use which: closures for simple data, classes for complex state or inheritance
+4. **Exposing a Custom API** — using `getPlugin<T>(name)` to let consumers call plugin-specific methods
+5. **Testing Plugins** — using `@kata-framework/test-utils` to write plugin tests with `createTestEngine`
+6. **Publishing** — naming convention (`kata-plugin-*`), package.json setup, peer dependency on `@kata-framework/core`, subpath exports pattern for multi-plugin packages
+7. **Subpath Exports** — how official plugins use `@kata-framework/core/plugins/*` subpaths, how third-party plugins can adopt the same pattern for tree-shakeability
+8. **Examples** — annotated source of the analytics plugin and profanity filter as reference implementations
+
+**TDD test plan:** (for the example plugin built in the guide)
+1. `guide-example-plugin.test.ts`
+   - The example plugin from the guide actually works when copy-pasted
+   - Validates that the guide's code samples are accurate
+
+---
+
+### 4.4 Plugin Distribution & Scaffolding
+
+**What:** Tooling and conventions that make it easy for the community to create, discover, and use third-party plugins.
+
+**Why:** A plugin system without distribution is just an interface. We need naming conventions for npm discoverability, a starter template for rapid development, and a catalog so authors can find community plugins.
+
+**Deliverables:**
+
+#### 4.4.1 `create-kata-plugin` Template
+
+```bash
+bun create kata-plugin my-awesome-plugin
+```
+
+Scaffolds:
+```
+my-awesome-plugin/
+  src/
+    index.ts          ← plugin factory + KataPlugin implementation
+  tests/
+    index.test.ts     ← starter test using @kata-framework/test-utils
+  package.json        ← peer dep on @kata-framework/core, tsup config
+  tsconfig.json
+  README.md           ← template with usage example
+```
+
+- Pre-configured with tsup (CJS + ESM + DTS), bun:test, TypeScript
+- README template with badges, install/usage sections
+- `package.json` has correct `peerDependencies`, `main`/`module`/`types` fields
+- Naming convention enforced: package name starts with `kata-plugin-`
+
+**TDD test plan:**
+1. `scaffold-output.test.ts`
+   - Running the scaffolder creates the expected directory structure
+   - `package.json` has correct name, peer deps, and build config
+   - Generated plugin compiles without errors
+   - Generated test passes out of the box
+2. `scaffold-naming.test.ts`
+   - Input name is normalized to `kata-plugin-{name}`
+   - Invalid names (spaces, special chars) are rejected with a message
+
+#### 4.4.2 Plugin Catalog Page
+
+- A `docs/plugins-catalog.md` page listing:
+  - **Official plugins** (shipped with `kata-core`) — profanity filter, auto-save, logger, content warnings, analytics
+  - **Community plugins** — curated list with name, description, npm link, and compatibility version
+- Submission process: PR to add an entry (name, npm package, description, min kata-core version)
+- Each entry links to the plugin's npm page and repository
+
+#### 4.4.3 Plugin Validation Utility
+
+```ts
+import { validatePlugin } from "@kata-framework/core/plugins/validate";
+
+const result = validatePlugin(myPlugin);
+// { valid: true } or { valid: false, errors: ["Missing 'name' property", ...] }
+```
+
+- Validates the `KataPlugin` interface at runtime (useful for dynamic loading)
+- Checks: `name` is a non-empty string, hooks are functions (if present), no unknown properties
+- Used internally by `engine.use()` to give helpful errors instead of silent failures
+
+**TDD test plan:**
+1. `validate-plugin.test.ts`
+   - Valid plugin passes validation
+   - Missing `name` produces an error
+   - Non-function hook values produce errors
+   - Extra properties produce a warning (not an error)
+   - `engine.use()` calls `validatePlugin` internally and throws on invalid
+
+---
+
+### Phase 4 Release Checklist
+
+- [x] All new tests green
+- [x] Root README updated:
+  - [x] Official plugins section with usage examples for each
+  - [x] Link to plugin authoring guide
+  - [x] Link to plugin catalog
+  - [x] `create-kata-plugin` usage in Getting Started
+- [x] Plugin authoring guide published at `docs/plugins.md`
+- [x] Plugin catalog published at `docs/plugins-catalog.md`
+- [x] Package READMEs updated (`kata-core`)
+- [x] `create-kata-plugin` template published to npm
+- [x] Changesets created for `kata-core` (minor)
+- [x] `bun run release` — publish `@kata-framework/core@0.5.0`, `create-kata-plugin@0.1.0`
+
+---
+
+## Phase 5 — Multiplayer `v0.6.0`
 
 The most ambitious phase. A narrative engine that supports shared experiences — from two tabs on the same device to networked rooms with dozens of players.
 
-**Design philosophy:** The `KataEngine` itself does not change. Multiplayer is a layer that wraps it. On the authority node, the engine runs normally. The sync layer captures method calls and broadcasts results. On follower nodes, the sync layer receives events and forwards frames to the UI. This means Phase 4 requires **zero breaking changes** to `kata-core`.
+**Design philosophy:** The `KataEngine` itself does not change. Multiplayer is a layer that wraps it. On the authority node, the engine runs normally. The sync layer captures method calls and broadcasts results. On follower nodes, the sync layer receives events and forwards frames to the UI. This means Phase 5 requires **zero breaking changes** to `kata-core`.
 
 ---
 
-### 4.1 Sync Architecture & Transport Interface
+### 5.1 Sync Architecture & Transport Interface
 
 **What:** Define the sync protocol, transport abstraction, and authority model.
 
@@ -749,7 +1102,7 @@ type ConnectionState = "disconnected" | "connecting" | "connected" | "reconnecti
 
 ---
 
-### 4.2 BroadcastChannel Transport (same-device)
+### 5.2 BroadcastChannel Transport (same-device)
 
 **What:** The simplest transport — two browser tabs share a story session with zero infrastructure.
 
@@ -787,7 +1140,7 @@ engine.start("intro"); // Broadcasts to all tabs
 
 ---
 
-### 4.3 WebSocket Transport (networked)
+### 5.3 WebSocket Transport (networked)
 
 **What:** Room-based networked multiplayer. A lightweight server connects players across devices.
 
@@ -879,7 +1232,7 @@ function Lobby() {
 
 ---
 
-### 4.4 State Partitioning & Advanced Sync
+### 5.4 State Partitioning & Advanced Sync
 
 **What:** Shared vs per-player state, per-player scene branching, and sync points.
 
@@ -931,17 +1284,18 @@ sync.getPlayerPosition("player-1");     // which scene/action player-1 is at
 
 ---
 
-### Phase 4 Release Checklist
+### Phase 5 Release Checklist
 
 - [ ] All new tests green
-- [ ] README updated:
+- [ ] Root README updated:
   - [ ] Multiplayer section: quick start with BroadcastChannel, then WebSocket
   - [ ] Choice policies documented with examples
   - [ ] State partitioning (shared vs branching) explained with frontmatter syntax
   - [ ] `@kata-framework/sync` added to Packages table
   - [ ] `useKataMultiplayer()` hook documented in React section
+- [ ] Package READMEs updated for affected packages (`kata-core`, `kata-react`, `kata-sync`)
 - [ ] Changesets created for `kata-core` (minor), `kata-react` (minor), `kata-sync` (initial)
-- [ ] `bun run release` — publish `@kata-framework/core@0.5.0`, `@kata-framework/react@0.5.0`, `@kata-framework/sync@0.1.0`
+- [ ] `bun run release` — publish `@kata-framework/core@0.6.0`, `@kata-framework/react@0.6.0`, `@kata-framework/sync@0.1.0`
 
 ---
 
@@ -952,6 +1306,7 @@ sync.getPlayerPosition("player-1");     // which scene/action player-1 is at
 | **1 — Extensibility** | `0.2.0` | `kata-core`, `kata-test-utils` (new) | Plugin system, test utils, undo/rewind, error diagnostics |
 | **2 — Authoring** | `0.3.0` | `kata-core`, `kata-cli`, `kata-lsp` (new), `kata-vscode` | LSP (diagnostics, autocomplete, go-to-def), scene graph viz (CLI + VS Code), syntax extensions (`[wait]`, `[exec]`, `:::else`) |
 | **3 — Reach** | `0.4.0` | `kata-core`, `kata-react` | i18n / localization, branching analytics plugin, accessibility (ARIA + keyboard), animation/tween timelines |
-| **4 — Multiplayer** | `0.5.0` | `kata-core`, `kata-react`, `kata-sync` (new) | Sync protocol, BroadcastChannel transport, WebSocket rooms + server, choice policies, state partitioning, player presence |
+| **4 — Plugin Ecosystem** | `0.5.0` | `kata-core`, `create-kata-plugin` (new) | Subpath exports (`core/plugins/*`), official plugins (profanity, auto-save, logger, content warnings), plugin authoring guide, `create-kata-plugin` scaffolder, plugin catalog, validation utility |
+| **5 — Multiplayer** | `0.6.0` | `kata-core`, `kata-react`, `kata-sync` (new) | Sync protocol, BroadcastChannel transport, WebSocket rooms + server, choice policies, state partitioning, player presence |
 
 Each phase ships with: passing TDD test suite, updated README (guide-style with examples), changesets, and published packages.

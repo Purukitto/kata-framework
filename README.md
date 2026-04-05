@@ -14,9 +14,34 @@ Kata Framework is a headless runtime designed for creating interactive narrative
 |---------|-------------|
 | [`@kata-framework/core`](./packages/kata-core) | Pure headless engine — parser, runtime, store, audio, VFS, modding, assets |
 | [`@kata-framework/react`](./packages/kata-react) | React 19 bindings — `<KataProvider>`, `useKata()`, `KataDebug` |
-| [`@kata-framework/cli`](./packages/kata-cli) | CLI tool — watch `.kata` files and compile to KSON JSON |
+| [`@kata-framework/cli`](./packages/kata-cli) | CLI tool — build, watch, and graph `.kata` files |
 | [`@kata-framework/test-utils`](./packages/kata-test-utils) | Test utilities — `createTestEngine()`, `collectFrames()`, `assertFrame()` |
-| [`kata-vscode`](./packages/kata-vscode) | VS Code extension — syntax highlighting for `.kata` files |
+| [`@kata-framework/lsp`](./packages/kata-lsp) | Language Server Protocol — diagnostics, autocomplete, hover, go-to-definition |
+| [`kata-vscode`](./packages/kata-vscode) | VS Code extension — syntax highlighting, LSP integration, scene graph webview |
+| [`create-kata-plugin`](./packages/create-kata-plugin) | Scaffolder for creating new Kata plugins |
+
+---
+
+## Plugins
+
+Kata's plugin system lets you extend the engine with lifecycle hooks. Official plugins ship as tree-shakeable subpath exports:
+
+```ts
+import { analyticsPlugin } from "@kata-framework/core/plugins/analytics";
+import { profanityPlugin } from "@kata-framework/core/plugins/profanity";
+import { autoSavePlugin } from "@kata-framework/core/plugins/auto-save";
+import { loggerPlugin } from "@kata-framework/core/plugins/logger";
+import { contentWarningsPlugin } from "@kata-framework/core/plugins/content-warnings";
+```
+
+Create your own plugin in seconds:
+
+```bash
+bun create kata-plugin my-feature
+```
+
+- [Plugin Authoring Guide](./docs/plugins.md)
+- [Plugin Catalog](./docs/plugins-catalog.md)
 
 ---
 
@@ -175,7 +200,14 @@ Logic runs securely via `new Function` (never `eval`). Access game state through
 | `:: Speaker :: dialogue text` | Text action — character speaks |
 | `* [Label] -> @scene/id` | Choice — player picks, engine jumps to target scene |
 | `:::if{cond="expr"} ... :::` | Conditional block — content only appears when condition is true |
+| `:::elseif{cond="expr"}` | Else-if branch inside a conditional block |
+| `:::else` | Else branch inside a conditional block |
+| `[wait 2000]` | Pause playback for a duration (ms) |
+| `[exec] ... [/exec]` | Run inline logic mid-scene |
+| `// comment` | Comment — stripped during parsing (line must start with `//`) |
 | `${expression}` | Interpolation — inline variable values in text |
+| `[tween target="id" property="x" to="400" duration="800"]` | Tween animation — fire-and-forget, UI implements actual animation |
+| `[tween-group parallel] ... [/tween-group]` | Group tweens (parallel or sequence mode) |
 
 Under the hood, the engine also supports these action types in KSON (useful when building scenes programmatically):
 
@@ -184,6 +216,8 @@ Under the hood, the engine also supports these action types in KSON (useful when
 | `{ type: "wait", duration: 2000 }` | Pause playback for a duration (ms) |
 | `{ type: "exec", code: "ctx.gold += 10" }` | Run logic mid-scene without a `<script>` block |
 | `{ type: "audio", command: { ... } }` | Fire-and-forget audio command (see [Audio System](#audio-system)) |
+| `{ type: "tween", target, property, to, duration, easing? }` | Tween animation (fire-and-forget, like audio) |
+| `{ type: "tween-group", mode, tweens[] }` | Grouped tweens (parallel or sequence) |
 
 Choices also support optional fields for advanced branching:
 
@@ -370,6 +404,17 @@ kata build scenes/intro.kata -o dist/
 kata build "scenes/**/*.kata" -o dist/ --watch
 
 # Output: dist/intro.kson.json, dist/shop.kson.json, ...
+
+# Visualize scene graph (DOT format for Graphviz)
+kata graph "scenes/**/*.kata" --format dot > story.dot
+
+# Scene graph as JSON (for custom tooling)
+kata graph "scenes/**/*.kata" --format json
+
+# Lint for structural issues
+kata graph "scenes/**/*.kata" --lint
+# ⚠ Orphaned scene: "secret-ending" (no inbound edges)
+# ⚠ Dead end: "bad-ending" (no choices, no outbound edges)
 ```
 
 You can also create a `kata.config.json` in your project root to avoid repeating flags:
@@ -387,20 +432,29 @@ The CLI resolves config as: **CLI flags → `kata.config.json` → defaults**.
 
 ## VS Code Extension
 
-The `kata-vscode` package provides syntax highlighting for `.kata` files:
+The `kata-vscode` extension provides a rich editing experience for `.kata` files:
 
-- YAML frontmatter highlighting
-- JavaScript in `<script>` blocks
-- Speaker/dialogue coloring (`:: Speaker :: text`)
-- Conditional blocks (`:::if{cond="..."}`)
-- Choice syntax (`* [Label] -> @target`)
-- Variable interpolation (`${expr}`)
+**Syntax Highlighting:**
+- YAML frontmatter, JavaScript in `<script>` blocks, speaker/dialogue, conditionals, choices, interpolation
 
-Install from the `packages/kata-vscode` directory or package it with `vsce`:
+**Language Server (LSP):**
+- **Diagnostics** — undefined variables, unreachable scene targets, duplicate scene IDs, invalid condition syntax
+- **Autocomplete** — scene IDs after `-> @`, variable names in `${...}` and `cond="..."`, asset keys in `[bg src="..."]`
+- **Hover** — variable type info on `${path}`, asset URLs on `[bg src="..."]`
+- **Go-to-definition** — jump from `-> @scene/id` to the target `.kata` file
+- **Document symbols** — outline view with scenes, speakers, and choice branches
+
+**Scene Graph Visualization:**
+- Command: `Kata: Show Scene Graph`
+- Interactive force-directed graph in a webview panel
+- Color-coded nodes: green (reachable), yellow (orphaned), red (dead end)
+- Updates live as `.kata` files are saved
+
+Install from the `packages/kata-vscode` directory:
 
 ```bash
 cd packages/kata-vscode
-npx @vscode/vsce package
+bun run package
 # Install the generated .vsix in VS Code
 ```
 
@@ -501,6 +555,109 @@ assertFrame(allFrames[0], { type: "text", speaker: "A", content: "Hello" });
 const audio = mockAudioManager();
 engine.on("audio", audio.handler);
 ```
+
+---
+
+## Localization (i18n)
+
+Ship one scene in multiple languages. Text content swaps based on locale; logic, conditions, and structure remain unchanged.
+
+```ts
+// Register locale overrides
+engine.registerLocale("intro", "ja", [
+  { index: 0, content: "森へようこそ、${player.name}。" },
+  { index: 2, speaker: "商人", content: "おお、裕福な旅人！" },
+]);
+
+// Activate a locale
+engine.setLocale("ja");
+engine.setLocaleFallback("en"); // fallback if key missing
+
+// Locale is included in snapshots and restored on load
+const snapshot = engine.getSnapshot(); // { ..., locale: "ja" }
+```
+
+Locale files can be loaded from VFS layers, allowing mods to add translations:
+
+```yaml
+# intro.kata.ja.yml
+locale: ja
+overrides:
+  - index: 0
+    content: "森へようこそ、${player.name}。"
+  - index: 2
+    speaker: "商人"
+    content: "おお、裕福な旅人！"
+```
+
+---
+
+## Analytics Plugin
+
+A built-in plugin that tracks how players experience the story:
+
+```ts
+import { analyticsPlugin } from "@kata-framework/core/plugins/analytics";
+
+engine.use(analyticsPlugin());
+
+// After gameplay
+const report = engine.getPlugin("analytics").getReport();
+// {
+//   sceneVisits: { "intro": 3, "shop": 1 },
+//   choiceSelections: { "buy-sword": 2, "continue": 1 },
+//   dropOffPoints: ["bad-ending"],
+//   averageActionsPerScene: { "intro": 4.5 },
+//   sessionDuration: 45000,
+// }
+
+const json = engine.getPlugin("analytics").toJSON();
+engine.getPlugin("analytics").reset();
+```
+
+Analytics data is **not** included in game snapshots (it's meta, not game state) and persists across `back()` rewinds.
+
+---
+
+## Accessibility (a11y)
+
+Every emitted `KSONFrame` includes an optional `a11y` field with accessibility hints:
+
+```ts
+engine.on("update", (frame) => {
+  console.log(frame.a11y);
+  // Text: { role: "dialog", liveRegion: "assertive", label: "Narrator says: Welcome" }
+  // Choice: { role: "group", keyHints: [{ choiceId: "c_0", hint: "Press 1 for Fight" }] }
+  // Tween: { description: "stranger animates x", reducedMotion: true }
+});
+```
+
+The `kata-react` package provides accessibility hooks:
+
+- `useReducedMotion()` — tracks `prefers-reduced-motion` media query
+- `useKeyboardNavigation(choices, onSelect)` — arrow key + Enter + number key navigation
+- `useFocusManagement(dep)` — auto-focus management on frame changes
+
+---
+
+## Animation / Tween Timelines
+
+Choreograph visual sequences alongside narrative in `.kata` files. The engine emits tween frames; the UI layer implements the actual animation.
+
+```kata
+:: Narrator :: The stranger approaches.
+
+[tween target="stranger" property="x" from="100" to="400" duration="800" easing="ease-in-out"]
+
+[tween-group parallel]
+[tween target="stranger" property="opacity" to="1" duration="500"]
+[tween target="bg" property="blur" to="5" duration="500"]
+[/tween-group]
+
+:: Stranger :: We need to talk.
+```
+
+Tweens are **fire-and-forget** (like audio): the engine emits the tween frame, then auto-advances. Use any animation library (Framer Motion, GSAP, CSS transitions) on the UI side.
 
 ---
 

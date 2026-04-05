@@ -17,8 +17,35 @@ export type KSONAction =
   | { type: "visual"; layer: string; src: string; effect?: string }
   | { type: "wait"; duration: number }
   | { type: "exec"; code: string }
-  | { type: "condition"; condition: string; then: KSONAction[] }
-  | { type: "audio"; command: AudioCommand };
+  | {
+      type: "condition";
+      condition: string;
+      then: KSONAction[];
+      elseIf?: Array<{ condition: string; then: KSONAction[] }>;
+      else?: KSONAction[];
+    }
+  | { type: "audio"; command: AudioCommand }
+  | {
+      type: "tween";
+      target: string;
+      property: string;
+      from?: number;
+      to: number;
+      duration: number;
+      easing?: string;
+    }
+  | {
+      type: "tween-group";
+      mode: "parallel" | "sequence";
+      tweens: Array<{
+        target: string;
+        property: string;
+        from?: number;
+        to: number;
+        duration: number;
+        easing?: string;
+      }>;
+    };
 
 export interface Choice {
   id: string;
@@ -34,10 +61,20 @@ export interface KSONScene {
   actions: KSONAction[];
 }
 
+export interface A11yHints {
+  role?: string;
+  liveRegion?: "assertive" | "polite" | "off";
+  label?: string;
+  description?: string;
+  keyHints?: Array<{ choiceId: string; hint: string }>;
+  reducedMotion?: boolean;
+}
+
 export interface KSONFrame {
   meta: KSONMeta;
   action: KSONAction;
   state: Record<string, any>;
+  a11y?: A11yHints;
 }
 
 export interface Diagnostic {
@@ -48,8 +85,21 @@ export interface Diagnostic {
   actionIndex?: number;
 }
 
+export interface LocaleOverride {
+  index: number;
+  speaker?: string;
+  content?: string;
+}
+
+export interface LocaleData {
+  locale: string;
+  overrides: LocaleOverride[];
+}
+
 export interface KataEngineOptions {
   historyDepth?: number;
+  locale?: string;
+  localeFallback?: string;
 }
 
 export interface UndoEntry {
@@ -68,4 +118,6 @@ export interface GameStateSnapshot {
   history: string[];
   expandedActions?: KSONAction[];
   undoStack?: UndoEntry[];
+  locale?: string;
+  localeFallback?: string;
 }

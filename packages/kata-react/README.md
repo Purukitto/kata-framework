@@ -1,110 +1,112 @@
-# @kata/react
+# @kata-framework/react
 
-React bindings for Kata: wrap your app in **KataProvider**, drive narrative with the **useKata()** hook, and render frames with your own UI.
+React 19 bindings for the Kata narrative engine. Wrap your app in `KataProvider`, drive the story with `useKata()`, and render frames with your own components.
 
----
+## Install
 
-## Usage
+```bash
+bun add @kata-framework/react @kata-framework/core
+```
 
-### 1. Wrap the app with KataProvider
-
-Pass an optional `config` object as the initial engine context (e.g. player state). The provider creates a single **KataEngine** and exposes it to the tree.
+## Quick Start
 
 ```tsx
-import { KataProvider } from "kata-react";
-import { parseKata } from "kata-core/src/parser/index";
+import { KataProvider, useKata } from "@kata-framework/react";
+import { parseKata } from "@kata-framework/core";
 
-const introScene = parseKata(`
----
-id: intro
----
-:: Narrator ::
-Welcome. You have \${player.gold} gold.
-* [Start] -> @intro
-`);
+const scenes = [parseKata(introSource), parseKata(shopSource)];
 
 function App() {
   return (
-    <KataProvider config={{ player: { gold: 100 } }}>
+    <KataProvider config={{ player: { name: "Hero", gold: 100 } }} initialScenes={scenes}>
       <Game />
     </KataProvider>
   );
 }
-```
-
-### 2. Register scenes and use the hook
-
-Scenes must be registered on the engine before calling `start(id)`. You can do that in a component that has access to the engine (e.g. via `useKataEngine()`), or in a small bootstrap effect. Then use **useKata()** to get the current frame, state, and actions.
-
-```tsx
-import { useKata, useKataEngine } from "kata-react";
-import { parseKata } from "kata-core/src/parser/index";
-import { useEffect } from "react";
-
-const introScene = parseKata(/* ... */);
 
 function Game() {
-  const engine = useKataEngine();
   const { frame, state, actions } = useKata();
 
-  useEffect(() => {
-    engine.registerScene(introScene);
-    actions.start("intro");
-  }, [engine]);
+  if (!frame) return <button onClick={() => actions.start("intro")}>Start</button>;
 
-  // ...
-}
-```
-
-### 3. Render from frame and actions
-
-`frame` is the current **KSONFrame** (or `null` before the first update). `state` is `frame?.state ?? null`. Use `actions.next()`, `actions.start(id)`, and `actions.makeChoice(id)` to drive the story.
-
----
-
-## Example: custom UI component
-
-```tsx
-import { useKata } from "kata-react";
-
-function NarrativeUI() {
-  const { frame, state, actions } = useKata();
-
-  if (!frame) {
-    return <p>Loading…</p>;
-  }
-
-  const { action } = frame;
-
-  if (action.type === "text") {
+  if (frame.action.type === "text") {
     return (
-      <div className="dialogue">
-        <span className="speaker">{action.speaker}</span>
-        <p>{action.content}</p>
-        <button onClick={() => actions.next()}>Next</button>
+      <div>
+        <strong>{frame.action.speaker}:</strong> {frame.action.content}
+        <button onClick={actions.next}>Next</button>
       </div>
     );
   }
 
-  if (action.type === "choice") {
+  if (frame.action.type === "choice") {
     return (
-      <div className="choices">
-        {action.choices.map((choice) => (
-          <button
-            key={choice.id}
-            onClick={() => actions.makeChoice(choice.id)}
-          >
-            {choice.label}
+      <div>
+        {frame.action.choices.map((c) => (
+          <button key={c.id} onClick={() => actions.makeChoice(c.id)}>
+            {c.label}
           </button>
         ))}
       </div>
     );
   }
 
-  return <button onClick={() => actions.next()}>Next</button>;
+  return <button onClick={actions.next}>Next</button>;
 }
 ```
 
-This component subscribes to the engine via `useKata()`, shows the current dialogue or choices, and advances or branches with `actions.next()` and `actions.makeChoice(id)`. You can replace the markup and styles with your own design; the hook contract stays the same.
+## API
 
-For a ready-made debug panel (scene ID, current action, state), use the **KataDebug** component from `kata-react` where appropriate.
+### `<KataProvider>`
+
+Creates a single `KataEngine` instance and exposes it via context.
+
+| Prop | Type | Description |
+|------|------|-------------|
+| `config` | `Record<string, any>` | Initial engine context (`ctx`) |
+| `initialScenes` | `KSONScene[]` | Scenes to register on mount |
+| `options` | `KataEngineOptions` | Engine options (e.g. `{ historyDepth: 100 }`) |
+
+### `useKata()`
+
+Subscribe to engine events via `useSyncExternalStore`. Returns:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `frame` | `KSONFrame \| null` | Current frame (null before first update) |
+| `state` | `object \| null` | Current `frame.state` shortcut |
+| `actions.start(id)` | `function` | Start a scene |
+| `actions.next()` | `function` | Advance to next action |
+| `actions.makeChoice(id)` | `function` | Pick a choice |
+
+### `useKataEngine()`
+
+Direct access to the `KataEngine` instance from context. Use for advanced operations like `engine.back()`, `engine.use(plugin)`, `engine.getSnapshot()`, etc.
+
+### `<KataDebug />`
+
+Optional debug overlay showing scene ID, current action index, and context state. Drop it anywhere inside `KataProvider` during development.
+
+## Architecture
+
+- `KataProvider` (`src/context.tsx`) — creates engine via `useRef`, exposes via React context
+- `useKata()` (`src/useKata.ts`) — `useSyncExternalStore` subscription to engine events
+- `KataDebug` (`src/KataDebug.tsx`) — debug overlay component
+
+### Accessibility Hooks
+
+```tsx
+import { useReducedMotion, useKeyboardNavigation, useFocusManagement } from "@kata-framework/react";
+
+// Track prefers-reduced-motion media query
+const prefersReduced = useReducedMotion();
+
+// Arrow key + Enter navigation for choices
+useKeyboardNavigation(choices, (choiceId) => actions.makeChoice(choiceId));
+
+// Auto-focus an element when a dependency changes
+const ref = useFocusManagement(frame);
+```
+
+`KataDebug` includes ARIA attributes (`role="dialog"`, `aria-live="assertive"`, `aria-label`) for accessible debug output.
+
+Depends on `@kata-framework/core` via `workspace:*`. Peer dependency on React 19.

@@ -1,96 +1,185 @@
-# @kata/core
+# @kata-framework/core
 
-Headless narrative engine: parse `.kata` scenes into KSON, run them with **KataEngine**, and consume **frames** (meta + action + state) in any environment.
+Headless narrative engine for interactive fiction, visual novels, and text adventures. Parse `.kata` scene files into KSON, run them with `KataEngine`, and consume typed frames in any UI framework.
 
----
+## Install
 
-## Usage
+```bash
+bun add @kata-framework/core
+```
+
+## Quick Start
 
 ```ts
-import { KataEngine } from "kata-core/src/runtime/index";
-import { parseKata } from "kata-core/src/parser/index";
+import { parseKata, KataEngine } from "@kata-framework/core";
 
-// 1. Parse a .kata scene (string or file content)
 const scene = parseKata(`
 ---
 id: intro
+title: The Beginning
 ---
-:: Narrator ::
-You have \${player.gold} gold.
+:: Narrator :: Welcome, ${player.name}. You have ${player.gold} gold.
 
-* [Buy Item] -> @shop
-* [Leave] -> @end
+:::if{cond="player.gold > 50"}
+:: Merchant :: Care to browse my wares?
+:::else
+:: Merchant :: Come back when you have coin.
+:::
+
+* [Buy a sword] -> @shop
+* [Leave] -> @town
 `);
 
-// 2. Create the engine with initial context
-const engine = new KataEngine({
-  player: { gold: 50 },
-});
-
-// 3. Register one or more scenes
+const engine = new KataEngine({ player: { name: "Hero", gold: 100 } });
 engine.registerScene(scene);
 
-// 4. Subscribe to frame updates (headless: you decide what to do with each frame)
 engine.on("update", (frame) => {
-  console.log(frame.action.type, frame.action);
+  console.log(frame.action); // { type: "text", speaker: "Narrator", content: "..." }
 });
-engine.on("end", ({ sceneId }) => {
-  console.log("Scene ended:", sceneId);
-});
+engine.on("end", ({ sceneId }) => console.log("Scene ended:", sceneId));
 
-// 5. Start a scene by ID
 engine.start("intro");
-
-// 6. Advance or make choices
 engine.next();
-// or, when the current action is a choice:
 engine.makeChoice("c_0");
 ```
 
-**API summary**
+## Features
 
-| Method / Function   | Description |
-|--------------------|-------------|
-| `parseKata(content)` | Parses a `.kata` string; returns a `KSONScene`. |
-| `new KataEngine(initialCtx)` | Creates an engine with optional initial context (e.g. `{ player: { gold: 0 } }`). |
-| `engine.registerScene(scene)` | Registers a parsed scene by `scene.meta.id`. |
-| `engine.start(sceneId)` | Starts a scene and emits the first frame. |
-| `engine.next()` | Advances to the next action and emits a frame (or `end` if finished). |
-| `engine.makeChoice(choiceId)` | Picks a choice by `id`; jumps to `target` scene if present, else advances. |
-| `engine.on("update", fn)` | Fired with a `KSONFrame` on each step. |
-| `engine.on("end", fn)` | Fired when the current scene runs out of actions. |
+### Engine API
 
----
+| Method | Description |
+|--------|-------------|
+| `parseKata(content)` | Parse a `.kata` string → `KSONScene` |
+| `parseKataWithDiagnostics(content)` | Parse with validation warnings/errors |
+| `new KataEngine(ctx, options?)` | Create engine with initial context and options (`historyDepth`) |
+| `engine.registerScene(scene)` | Register a parsed scene by `scene.meta.id` |
+| `engine.start(sceneId)` | Start a scene, emit the first frame |
+| `engine.next()` | Advance to next action |
+| `engine.makeChoice(choiceId)` | Pick a choice; jumps to target scene if present |
+| `engine.back()` | Undo last action — restores ctx, scene, and action index |
+| `engine.use(plugin)` | Register a plugin with lifecycle hooks |
+| `engine.getSnapshot()` / `engine.loadSnapshot(raw)` | Save/load with Zod-validated migration |
 
-## The KSON spec
+### Engine Events
 
-KSON (Kata Serialized Object Notation) is the internal format the engine uses. Your UI should rely only on **frames** and **actions**; you don’t need to parse `.kata` yourself.
+| Event | Payload | When |
+|-------|---------|------|
+| `"update"` | `KSONFrame` | A new frame is ready to render |
+| `"end"` | `{ sceneId }` | Scene has no more actions |
+| `"audio"` | `AudioCommand` | Audio action fired (auto-advances) |
+| `"error"` | `Diagnostic` | Non-fatal error (bad condition, interpolation failure) |
+| `"preload"` | `string[]` | Asset IDs to preload |
 
-### Scene (parser output)
+### `.kata` Syntax
 
-- **meta** — `id`, optional `title`, `layout`, `assets`.
-- **script** — Raw `<script>` block content (for future use).
-- **actions** — Array of action objects (text, choice, visual, condition, etc.).
+| Syntax | Description |
+|--------|-------------|
+| `[bg src="file.mp4"]` | Visual directive |
+| `:: Speaker :: text` | Dialogue action |
+| `* [Label] -> @scene/id` | Choice with optional scene target |
+| `:::if{cond="expr"} ... :::elseif{cond="..."} ... :::else ... :::` | Conditional block with branches |
+| `[wait 2000]` | Pause playback (ms) |
+| `[exec] ... [/exec]` | Inline code execution |
+| `// comment` | Comment line (stripped) |
+| `${expression}` | Variable interpolation |
+| `[tween target="x" property="y" to="1" duration="500"]` | Animation tween |
+| `[tween-group parallel] ... [/tween-group]` | Grouped tweens (parallel or sequence) |
 
-### Frame (emitted on each step)
+### KSON Action Types
 
-Every `"update"` payload is a **KSONFrame**:
+| Type | Shape |
+|------|-------|
+| `text` | `{ type: "text", speaker, content }` |
+| `choice` | `{ type: "choice", choices: [{ id, label, target?, condition?, action? }] }` |
+| `visual` | `{ type: "visual", layer, src, effect? }` |
+| `condition` | `{ type: "condition", condition, then, elseIf?, else? }` |
+| `wait` | `{ type: "wait", duration }` |
+| `exec` | `{ type: "exec", code }` |
+| `audio` | `{ type: "audio", command: AudioCommand }` |
+| `tween` | `{ type: "tween", target, property, from?, to, duration, easing? }` |
+| `tween-group` | `{ type: "tween-group", mode: "parallel" \| "sequence", tweens: [...] }` |
 
-| Field   | Type   | Description |
-|--------|--------|-------------|
-| `meta` | object | Scene meta (same as in the scene). |
-| `action` | object | Current action (see below). |
-| `state` | object | Current state: `ctx`, `currentSceneId`, `currentActionIndex`, `history`. |
+### Plugin System
 
-### Action types
+```ts
+engine.use({
+  name: "my-plugin",
+  init(engine) { /* called once on registration */ },
+  beforeAction(action, ctx) { console.log(action); return action; },
+  afterAction(action, ctx) { /* ... */ },
+  onChoice(choice, ctx) { /* ... */ },
+  beforeSceneChange(fromId, toId, ctx) { /* ... */ },
+  onEnd(sceneId) { /* ... */ },
+});
+```
 
-| Type        | Shape | Description |
-|------------|--------|-------------|
-| `text`     | `{ type: "text", speaker, content }` | Dialogue line; `content` is interpolated (e.g. `\${player.gold}` resolved). |
-| `choice`   | `{ type: "choice", choices: [{ id, label, target? }] }` | Branch options; use `makeChoice(id)` to pick. |
-| `visual`   | `{ type: "visual", layer, src, effect? }` | Background / media directive. |
-| `condition`| `{ type: "condition", condition, then }` | Conditional block; engine evaluates `condition` and either injects `then` or skips. |
-| `wait`     | `{ type: "wait", duration }` | Timed pause. |
-| `exec`     | `{ type: "exec", code }` | Code execution (e.g. for side effects). |
+Plugins are validated on registration — invalid objects throw with descriptive errors. See the [Plugin Authoring Guide](../../docs/plugins.md) for details.
 
-All logic evaluation uses a restricted context (no `eval`); see the project architecture and `evaluator` for security details.
+### Official Plugins
+
+All official plugins are tree-shakeable via subpath exports — you only pay for what you import.
+
+```ts
+import { analyticsPlugin } from "@kata-framework/core/plugins/analytics";
+import { profanityPlugin } from "@kata-framework/core/plugins/profanity";
+import { autoSavePlugin } from "@kata-framework/core/plugins/auto-save";
+import { loggerPlugin } from "@kata-framework/core/plugins/logger";
+import { contentWarningsPlugin } from "@kata-framework/core/plugins/content-warnings";
+import { validatePlugin } from "@kata-framework/core/plugins/validate";
+```
+
+| Plugin | Description |
+|--------|-------------|
+| **Analytics** | Track scene visits, choice selections, drop-off points, session duration |
+| **Profanity Filter** | Censor text/choice labels — configurable word list, replacement strategies, scoping |
+| **Auto-Save** | Automatic snapshots on scene changes, choices, every action, or timed intervals |
+| **Debug Logger** | Structured lifecycle logging with quiet/normal/verbose levels |
+| **Content Warnings** | Tag scenes with warning labels, fire callbacks before entry |
+| **Validate** | Runtime plugin validation utility (also used internally by `engine.use()`) |
+
+### Additional Modules
+
+- **Save/Load** — `engine.getSnapshot()` / `engine.loadSnapshot(raw)` with Zod validation and versioned migration
+- **Modding** — `LayeredVFS` for file overlay, `mergeScene()` for RFC 7396-style scene patching
+- **Assets** — `AssetRegistry` for ID→URL mapping, `SceneGraph` for connectivity analysis and preloading
+- **Scene Graph** — `getOrphans()`, `getDeadEnds()`, `toJSON()`, `toDOT()` for story structure analysis
+
+### Localization (i18n)
+
+```ts
+engine.setLocale("ja");
+engine.setLocaleFallback("en");
+engine.registerLocale("intro", "ja", [
+  { index: 0, content: "森へようこそ、${player.name}。" },
+  { index: 2, speaker: "商人", content: "おお、裕福な旅人！" },
+]);
+```
+
+Locale overrides are resolved before variable interpolation. Locale state is included in snapshots.
+
+### Analytics Plugin
+
+```ts
+import { analyticsPlugin } from "@kata-framework/core/plugins/analytics";
+
+const analytics = analyticsPlugin();
+engine.use(analytics);
+
+// After gameplay
+const report = analytics.getReport();
+// { sceneVisits, choiceSelections, dropOffPoints, averageActionsPerScene, sessionDuration }
+
+analytics.toJSON(); // serializable export
+analytics.reset();  // clear all data
+```
+
+### Accessibility
+
+Every `KSONFrame` includes an optional `a11y` field with hints for screen readers:
+
+- **Text** — `{ role: "dialog", liveRegion: "assertive", label: "Speaker says: ..." }`
+- **Choice** — `{ role: "group", keyHints: [{ choiceId, hint: "Press N for Label" }] }`
+- **Visual** — `{ role: "img", description: "Visual: src on layer" }`
+- **Tween** — `{ description: "target animates property", reducedMotion: true }`
+
+All logic evaluation uses `new Function` with explicit context — never `eval()`.

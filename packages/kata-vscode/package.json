@@ -1,27 +1,45 @@
 {
   "name": "kata-vscode",
   "displayName": "Kata Language Support",
-  "description": "Syntax highlighting for .kata narrative files",
-  "version": "0.1.0",
+  "description": "Syntax highlighting, language server, and scene graph visualization for .kata narrative files",
+  "version": "0.2.3",
   "private": true,
+  "main": "./out/extension.js",
   "engines": {
     "vscode": "^1.85.0"
   },
+  "activationEvents": [
+    "onLanguage:kata"
+  ],
   "scripts": {
-    "build": "echo 'no build step'",
-    "package": "vsce package",
-    "publish": "vsce publish"
+    "build": "esbuild ./src/extension.ts --bundle --outfile=out/extension.js --external:vscode --format=cjs --platform=node",
+    "package": "bun run build && vsce package",
+    "publish": "bun run build && vsce publish"
   },
-  "categories": ["Programming Languages"],
+  "categories": [
+    "Programming Languages"
+  ],
+  "dependencies": {
+    "@kata-framework/core": "workspace:*",
+    "@kata-framework/lsp": "workspace:*",
+    "vscode-languageclient": "^9.0.1"
+  },
   "devDependencies": {
-    "@vscode/vsce": "^3.5.0"
+    "@types/vscode": "^1.85.0",
+    "@vscode/vsce": "^3.5.0",
+    "esbuild": "^0.25.0"
   },
   "contributes": {
     "languages": [
       {
         "id": "kata",
-        "aliases": ["Kata", "kata"],
-        "extensions": [".kata"],
+        "aliases": [
+          "Kata",
+          "kata"
+        ],
+        "extensions": [
+          ".kata"
+        ],
         "configuration": "./language-configuration.json"
       }
     ],
@@ -30,6 +48,12 @@
         "language": "kata",
         "scopeName": "source.kata",
         "path": "./syntaxes/kata.tmLanguage.json"
+      }
+    ],
+    "commands": [
+      {
+        "command": "kata.showSceneGraph",
+        "title": "Kata: Show Scene Graph"
       }
     ]
   }

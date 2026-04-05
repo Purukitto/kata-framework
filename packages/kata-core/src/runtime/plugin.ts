@@ -2,10 +2,12 @@ import type { KSONAction, Choice } from "../types";
 
 export interface KataPlugin {
   name: string;
+  init?(engine: any): void;
   beforeAction?(action: KSONAction, ctx: Record<string, any>): KSONAction | null;
   afterAction?(action: KSONAction, ctx: Record<string, any>): void;
   onChoice?(choice: Choice, ctx: Record<string, any>): void;
   beforeSceneChange?(fromId: string | null, toId: string, ctx: Record<string, any>): void;
+  onEnd?(sceneId: string): void;
 }
 
 export class PluginManager {
@@ -53,6 +55,16 @@ export class PluginManager {
     for (const plugin of this.plugins) {
       plugin.beforeSceneChange?.(fromId, toId, ctx);
     }
+  }
+
+  runOnEnd(sceneId: string): void {
+    for (const plugin of this.plugins) {
+      plugin.onEnd?.(sceneId);
+    }
+  }
+
+  getPlugin(name: string): KataPlugin | undefined {
+    return this.plugins.find((p) => p.name === name);
   }
 
   get hasPlugins(): boolean {
