@@ -15,7 +15,8 @@ Kata Framework is a headless runtime designed for creating interactive narrative
 | [`@kata-framework/core`](./packages/kata-core) | Pure headless engine — parser, runtime, store, audio, VFS, modding, assets |
 | [`@kata-framework/react`](./packages/kata-react) | React 19 bindings — `<KataProvider>`, `useKata()`, `TypewriterText`, `SceneTransition`, `TweenTarget`, `SaveManager`, `KataErrorBoundary` |
 | [`@kata-framework/cli`](./packages/kata-cli) | CLI tool — build, watch, and graph `.kata` files |
-| [`@kata-framework/test-utils`](./packages/kata-test-utils) | Test utilities — `createTestEngine()`, `collectFrames()`, `assertFrame()` |
+| [`@kata-framework/test-utils`](./packages/kata-test-utils) | Test utilities — `createTestEngine()`, `collectFrames()`, `assertFrame()`, `StoryTestRunner` |
+| [`@kata-framework/devtools`](./packages/kata-devtools) | In-browser devtools — `devtoolsPlugin()` + `<KataDevtools>` overlay (inspector, timeline, profiler, console) |
 | [`@kata-framework/lsp`](./packages/kata-lsp) | Language Server Protocol — diagnostics, autocomplete, hover, go-to-definition |
 | [`kata-vscode`](./packages/kata-vscode) | VS Code extension — syntax highlighting, LSP integration, scene graph webview |
 | [`@kata-framework/sync`](./packages/kata-sync) | Multiplayer sync — BroadcastChannel + WebSocket transports, host-authoritative rooms |
@@ -565,6 +566,61 @@ assertFrame(allFrames[0], { type: "text", speaker: "A", content: "Hello" });
 const audio = mockAudioManager();
 engine.on("audio", audio.handler);
 ```
+
+### Behavioral tests with `StoryTestRunner`
+
+Skip frame-index bookkeeping. Drive the story by what the player *does*.
+
+```ts
+import { StoryTestRunner } from "@kata-framework/test-utils";
+
+const story = new StoryTestRunner([forestKata, leftKata, rightKata]);
+
+story.start("forest");
+story.advanceUntilChoice();
+expect(story.currentChoices).toContain("Take the left path");
+
+story.choose("Take the left path");
+story.advanceUntilText("You find a stream.");
+
+expect(story.dialogueLog).toContain("You find a stream.");
+expect(story.canReach("right", "forest")).toBe(true);
+```
+
+Throws with the available choice labels if `choose()` doesn't find a match — failures point straight at the issue.
+
+---
+
+## Devtools
+
+`@kata-framework/devtools` ships a developer plugin with full timeline, per-plugin profiling, and a React overlay. Zero overhead in production (`NODE_ENV=production` returns a no-op shell).
+
+```tsx
+import { devtoolsPlugin } from "@kata-framework/devtools";
+import { KataDevtools } from "@kata-framework/devtools/react";
+
+const devtools = devtoolsPlugin();
+engine.use(devtools);
+
+function App() {
+  return (
+    <>
+      <YourGameUI />
+      <KataDevtools plugin={devtools} position="bottom-right" />
+    </>
+  );
+}
+```
+
+The plugin tracks every emitted frame, ctx mutation, plugin hook timing, and engine event. The overlay surfaces five tabs:
+
+- **Inspector** — current scene, action index, ctx, registered plugins
+- **Timeline** — every frame in order; click an entry to expand the full KSON frame
+- **Profiler** — per-plugin hook timing (call count / avg / max), slowest plugin, frame emission latency stats
+- **Console** — read-only ctx expression eval (e.g. `hp > 50`)
+- **Events** — chronological `update` / `end` / `audio` / `error` log
+
+Headless usage works too — call `devtools.getInspectorState()`, `getTimeline()`, `getProfilerReport()` directly from a Node test or build script.
 
 ---
 

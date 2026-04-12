@@ -23,6 +23,7 @@ cd packages/kata-cli && bun test
 cd packages/kata-test-utils && bun test
 cd packages/kata-lsp && bun test
 cd packages/kata-sync && bun test
+cd packages/kata-devtools && bun test
 
 # Run a single test file
 bun test packages/kata-core/tests/parser.test.ts
@@ -47,12 +48,13 @@ Each package builds with `tsup` (outputs into `dist/`). Notable differences per 
 | `kata-sync` | `index.ts` + `src/server/index.ts` | CJS + ESM + DTS | Two entries (client + server subpath); externals: `@kata-framework/core` |
 | `kata-vscode` | `src/extension.ts` | CJS (esbuild) | Bundles for VS Code; externals: `vscode` |
 | `create-kata` | `index.ts` | ESM only | Adds `#!/usr/bin/env bun` shebang banner for CLI execution |
+| `kata-devtools` | `index.ts` + `react.tsx` | CJS + ESM + DTS | Two entries (plugin + React overlay); externals: `react`, `react-dom`, `@kata-framework/core` |
 
 TypeScript uses `"moduleResolution": "bundler"` and `"verbatimModuleSyntax": true` across all packages.
 
 ## Architecture
 
-Bun workspace monorepo with nine packages under `packages/`. Workspaces also include `examples/*`.
+Bun workspace monorepo with ten packages under `packages/`. Workspaces also include `examples/*`.
 
 ### `@kata-framework/core` (`packages/kata-core`)
 
@@ -121,6 +123,7 @@ Test utility helpers for kata-core consumers:
 - `collectFrames(engine, sceneId, options?)` — auto-advances until end or choice; supports `autoPick` and `maxFrames`
 - `assertFrame(frame, expected)` — partial matching on action/state fields with readable error messages
 - `mockAudioManager()` — returns `{ handler, commands, lastCommand, reset }` for audio event testing
+- `StoryTestRunner` — behavioral test harness; methods: `start`, `advanceUntilChoice`, `advanceUntilText`, `choose(label)`; getters: `currentChoices`, `dialogueLog`, `speakerLog`, `ctx`, `canReach()`
 
 Depends on `@kata-framework/core` via `workspace:*`.
 
@@ -163,6 +166,15 @@ Multiplayer sync layer — wraps `KataEngine` with a host-authoritative model. Z
 **Data flow (follower):** `syncManager.start()` → sends intent `SyncEvent` to authority → authority processes → broadcasts result → follower receives and emits `"frame"`.
 
 Depends on `@kata-framework/core` via `workspace:*`. Server subpath: `@kata-framework/sync/server`.
+
+### `@kata-framework/devtools` (`packages/kata-devtools`)
+
+In-browser developer toolbar. Two entries:
+
+- `index.ts` — `devtoolsPlugin(options?)` returns a `KataPlugin` that records frames, ctx snapshots, plugin hook timing per-plugin, frame emission latency, and an event log. Wraps every other plugin's hook methods at `init` time and intercepts `engine.use()` and `engine.removePlugin()` to track plugins added later. Returns a no-op shell when `process.env.NODE_ENV === "production"` unless `enabled: true` is forced.
+- `react.tsx` — `<KataDevtools plugin={...} position="bottom-right" />` floating overlay with five tabs (Inspector / Timeline / Profiler / Console / Events). Subscribes via `useSyncExternalStore`.
+
+Public plugin API: `getInspectorState()`, `getTimeline()`, `getTimelineEntry(index)`, `getProfilerReport()`, `getEventLog()`, `subscribe(listener)`, `evalExpression(expr)`, `reset()`. Tests live in `tests/devtools-attach.test.ts`, `devtools-inspector.test.ts`, `devtools-profiler.test.ts`. Depends on `@kata-framework/core` via `workspace:*`; `react` is an optional peer dep.
 
 ### `create-kata-story` (`packages/create-kata`)
 
@@ -217,6 +229,7 @@ Tests use `bun:test` (Bun's native test runner). Test files live in `packages/*/
 | `kata-test-utils` | 4 | createTestEngine, collectFrames, assertFrame, mockAudioManager |
 | `kata-lsp` | 5 | Diagnostics, completions, hover, goto-definition, symbols |
 | `kata-sync` | 16 | Sync events, transport interface, authority model, sync manager, BroadcastChannel transport, WebSocket transport, server rooms, choice policies, presence, late join, shared/branching modes, sync points, state partitioning |
+| `kata-devtools` | 15 | Plugin attach/detach, NODE_ENV gating, inspector state, timeline ordering, frame detail, event log, profiler hook timing, slowest plugin, frame latency stats, pre-existing plugin wrapping |
 | `create-kata` | 1 | Scaffold output, naming, templates (minimal/react/multiplayer) |
 | `create-kata-plugin` | 2 | Scaffold output, naming validation |
 

@@ -11,11 +11,11 @@
 > 5. Changeset is created and packages are published
 > 6. **This roadmap is updated** — check off completed items, update current version
 
-Current version: `0.9.0` — Parser, runtime, store, audio, save/load, modding (VFS + scene merge), asset preloading, React bindings, CLI, VS Code syntax highlighting, plugin system, undo/rewind, error diagnostics, test utilities, LSP (diagnostics, autocomplete, hover, go-to-def, symbols), scene graph visualization (CLI + VS Code), syntax extensions (`[wait]`, `[exec]`, `:::else`/`:::elseif`, comments, `[audio]`), localization (i18n), branching analytics plugin, accessibility (a11y hints + React ARIA/keyboard hooks), animation/tween timelines, plugin ecosystem (subpath exports, profanity filter, auto-save, debug logger, content warnings, validation utility, plugin scaffolder, authoring guide), multiplayer (sync protocol, BroadcastChannel + WebSocket transports, host-authoritative rooms, choice policies, player presence, state partitioning, React hook), Web Audio (`WebAudioManager` with channels, crossfading, autoplay policy), asset pipeline (`AssetPipeline` with LRU cache, concurrent loading, progress tracking), `.kata` audio syntax (`[audio play/stop/pause/volume]`), production React layer (`TypewriterText`, `SceneTransition`, `TweenTarget`/`useTween`, `SaveManager`/`useSaveSlots`), **runtime resilience (graceful scene resolution, evaluation sandbox hardening, React error boundary)**.
+Current version: `0.10.0` — Parser, runtime, store, audio, save/load, modding (VFS + scene merge), asset preloading, React bindings, CLI, VS Code syntax highlighting, plugin system, undo/rewind, error diagnostics, test utilities, LSP (diagnostics, autocomplete, hover, go-to-def, symbols), scene graph visualization (CLI + VS Code), syntax extensions (`[wait]`, `[exec]`, `:::else`/`:::elseif`, comments, `[audio]`), localization (i18n), branching analytics plugin, accessibility (a11y hints + React ARIA/keyboard hooks), animation/tween timelines, plugin ecosystem (subpath exports, profanity filter, auto-save, debug logger, content warnings, validation utility, plugin scaffolder, authoring guide), multiplayer (sync protocol, BroadcastChannel + WebSocket transports, host-authoritative rooms, choice policies, player presence, state partitioning, React hook), Web Audio (`WebAudioManager` with channels, crossfading, autoplay policy), asset pipeline (`AssetPipeline` with LRU cache, concurrent loading, progress tracking), `.kata` audio syntax (`[audio play/stop/pause/volume]`), production React layer (`TypewriterText`, `SceneTransition`, `TweenTarget`/`useTween`, `SaveManager`/`useSaveSlots`), runtime resilience (graceful scene resolution, evaluation sandbox hardening, React error boundary), **developer experience (`@kata-framework/devtools` plugin + React overlay with inspector/timeline/profiler/console/events panels, behavioral `StoryTestRunner` test harness)**.
 
 ---
 
-## Completed Phases (v0.1.0 — v0.8.0)
+## Completed Phases (v0.1.0 — v0.10.0)
 
 **Phase 1 — Engine Extensibility `v0.2.0`** (2026-03-21): Plugin/middleware system with lifecycle hooks (`beforeAction`, `afterAction`, `onChoice`, `beforeSceneChange`, `onEnd`), `@kata-framework/test-utils` package, undo/rewind with configurable history depth, structured error diagnostics for parser and runtime.
 
@@ -30,6 +30,8 @@ Current version: `0.9.0` — Parser, runtime, store, audio, save/load, modding (
 **Phase 6 — Web Audio & Asset Pipeline `v0.7.0`** (2026-04-09): `WebAudioManager` — concrete Web Audio API implementation with channel-based architecture (bgm/sfx/voice), crossfading, per-channel + master volume, mute/unmute, autoplay policy queue, `AudioBufferCache` (LRU). `AssetPipeline` — concurrent fetch queue (`maxConcurrent`), `AssetCache` (LRU with configurable max size), `PreloadHandle` with `onProgress` callback, type-aware decoding (JSON/audio/image). `.kata` audio syntax: `[audio play channel "src"]`, `[audio stop channel]`, `[audio pause channel]`, `[audio volume channel value]` with parser diagnostics. `AudioCommand` type extended with `channel`, `src`, `pause`, `volume` actions (backward-compatible). Subpath exports: `@kata-framework/core/audio`, `@kata-framework/core/assets`. 44 new tests (330 total in kata-core).
 
 **Phase 7 — Production React Layer `v0.8.0`** (2026-04-11): `TypewriterText` — character-by-character text reveal with `requestAnimationFrame`, skip-on-click, `prefers-reduced-motion` support, `aria-label`/`aria-live` accessibility. `SceneTransition` — dual-container CSS transitions (fade, slide-left, dissolve, none) with lifecycle management, rapid-change handling, reduced-motion instant swap. `TweenTarget`/`useTween` — context-based tween style distribution mapping KSON tween properties (x, y, opacity, scale, rotation) to CSS transforms/transitions. `SaveManager` — storage-agnostic save slot manager with `StorageAdapter` interface, `localStorage` built-in, LRU slot metadata, auto-save slot support. `useSaveSlots` — reactive React hook for save/load/remove with engine integration. `TweenProvider` auto-included in `KataProvider`. 42 new tests (585 monorepo-wide).
+
+**Phase 9 — Developer Experience `v0.10.0`** (2026-04-12): `@kata-framework/devtools` package — `devtoolsPlugin()` records full timeline (frames, ctx snapshots, action types), profiles plugin hook timing per-plugin (wraps every other registered plugin's hooks at init time and intercepts future `engine.use()` calls), tracks frame emission latency stats (count/avg/min/max), and exposes `getInspectorState()`, `getTimeline()`, `getTimelineEntry()`, `getProfilerReport()`, `getEventLog()`, `subscribe()`, `evalExpression()`, `reset()`. Zero production overhead via `NODE_ENV` no-op shell. `<KataDevtools>` React overlay with Inspector / Timeline / Profiler / Console / Events tabs, four corner positions, and `useSyncExternalStore` reactivity (subpath: `@kata-framework/devtools/react`). `StoryTestRunner` in `@kata-framework/test-utils` — behavioral test harness with `start()`, `advanceUntilChoice()`, `advanceUntilText()`, `choose(label)`, `currentChoices`, `dialogueLog`, `speakerLog`, `ctx`, `canReach()`. 27 new tests (690 monorepo-wide).
 
 **Phase 8 — Runtime Resilience & Error Recovery `v0.9.0`** (2026-04-12): Graceful scene target resolution — `onMissingScene` option with `"throw"` (default), `"error-event"`, and `"fallback"` strategies; `fallbackSceneId` with `ctx._errorSceneId` injection. Expression evaluation sandbox hardening — blocked globals (`process`, `require`, `fetch`, `XMLHttpRequest`, `globalThis`, `window`, `self`, `global`, `__proto__`, `constructor`) shadowed as `undefined`; loop guard instrumentation for exec blocks with configurable `evalTimeout`; null-prototype context for exec blocks preventing prototype traversal. `KataErrorBoundary` — React class component error boundary with `reset()`, `restart()`, `loadLastSave()` recovery actions, `SaveManager` integration, `onError` callback. 51 new tests (636 monorepo-wide).
 
@@ -708,12 +710,14 @@ expect(story.speakerLog).toContain("Narrator");
 
 ### Phase 9 Release Checklist
 
-- [ ] All new tests green
-- [ ] Devtools overlay working in browser
-- [ ] `StoryTestRunner` tested and documented
-- [ ] Package READMEs updated (`kata-devtools`, `kata-test-utils`)
-- [ ] Changesets created for affected packages
-- [ ] `bun run release` — publish `@kata-framework/devtools@0.1.0`, `@kata-framework/test-utils` (minor)
+- [x] All new tests green
+- [x] Devtools overlay working in browser
+- [x] `StoryTestRunner` tested and documented
+- [x] Package READMEs updated (`kata-devtools`, `kata-test-utils`)
+- [x] Changesets created for affected packages
+- [x] `bun run release` — publish `@kata-framework/devtools@0.1.0`, `@kata-framework/test-utils` (minor)
+
+**Phase 9 complete (2026-04-12).**
 
 ---
 
