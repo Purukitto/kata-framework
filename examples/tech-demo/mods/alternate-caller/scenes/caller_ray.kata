@@ -1,0 +1,29 @@
+---
+id: caller_ray
+title: Caller — Ray the Engineer
+---
+
+// Mod-added caller: a rogue telecom engineer
+
+[bg src="studio-night.jpg"]
+
+:: Reva :: Incoming call. No caller ID — but the signal is clean. Too clean.
+
+:: Ray :: Listen, I don't have much time. I used to work for the grid authority. I know their relay infrastructure.
+
+:: Ray :: I can boost your signal. Triple your reach. But I need you to broadcast a specific frequency pattern first.
+
+:: Reva :: That sounds like a trap. Why should we trust a voice from the grid?
+
+:: Ray :: Because I built half the system they're using to silence you. And I want to tear it down.
+
+[exec]
+ctx.intel += 1;
+ctx.listeners += 300;
+[/exec]
+
+:: Narrator :: Ray patches into your transmitter. The signal meter jumps — ${listeners} listeners and climbing.
+
+:: Reva :: Whoever he is, it's working. We're reaching neighborhoods we've never hit before.
+
+* [Return to the booth] -> @booth

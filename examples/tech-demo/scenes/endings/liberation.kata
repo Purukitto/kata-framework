@@ -1,0 +1,31 @@
+---
+id: liberation
+title: Signal Rising
+---
+
+[bg src="signal-tower.jpg"]
+
+:: Narrator :: The broadcast cuts through the static like a blade.
+
+[exec]
+ctx.broadcastsAired += 1;
+ctx.listeners += 500;
+[/exec]
+
+:: Narrator :: Across the city, receivers crackle to life. In apartments and basements, in parked cars and backrooms — people listen.
+
+:: Reva :: We're getting responses. Dozens of them. They're relaying the signal.
+
+:: Reva :: ${listeners} listeners and climbing. The relay chain is spreading.
+
+:: Operator :: This is Radio Free Signal. We will not be silenced.
+
+[wait 1000]
+
+:: Narrator :: For the first time in three weeks, the city hears a voice that isn't theirs.
+
+:: Narrator :: It isn't much. One broadcast. One night. One signal in a sea of static.
+
+:: Narrator :: But ${listeners} people heard the truth tonight. And that's a start.
+
+:: Narrator :: END — The signal lives on.

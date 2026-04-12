@@ -1,0 +1,16 @@
+{
+  "id": "alternate-caller",
+  "name": "Alternate Caller: Ray",
+  "version": "1.0.0",
+  "description": "Adds a new caller — Ray, a rogue engineer who can boost your signal. Patches the booth scene to offer Ray as a caller option.",
+  "author": "Community Mod",
+  "scenes": [
+    "scenes/caller_ray.kata"
+  ],
+  "patches": [
+    {
+      "target": "booth",
+      "file": "patches/booth.patch.json"
+    }
+  ]
+}

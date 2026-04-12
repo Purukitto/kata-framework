@@ -1,0 +1,57 @@
+---
+id: signal_tower
+title: The Signal Tower
+---
+
+// The rooftop — adjusting the antenna for better range
+
+[bg src="rooftop-rain.jpg"]
+
+:: Narrator :: The rain hammers the rooftop. The antenna sways in the wind.
+
+:: Reva :: The signal's weak from up here, but if we can align the dish we'll double our range.
+
+[wait 800]
+
+:: Operator :: Hand me the wrench. I'll adjust the alignment.
+
+// Tween group: dial turns then signal locks (sequence)
+[tween-group sequence]
+[tween target="dial" property="rotation" from="0" to="270" duration="1000" easing="ease-in-out"]
+[tween target="signal-meter" property="width" from="30" to="80" duration="800" easing="ease-out"]
+[/tween-group]
+
+[exec]
+ctx.listeners += 300;
+[/exec]
+
+:: Reva :: Signal strength is climbing. We're reaching ${listeners} listeners now.
+
+:: Narrator :: The city stretches out below — dark windows, empty streets, a world holding its breath.
+
+[wait 1000]
+
+:::if{cond="suspicion >= 3"}
+
+// Tween group: lights dim + alert pulses (parallel)
+[tween-group parallel]
+[tween target="studio-lights" property="opacity" from="1" to="0.3" duration="600"]
+[tween target="alert-light" property="opacity" from="0" to="1" duration="400"]
+[/tween-group]
+
+:: Reva :: Wait — I see headlights. Someone's approaching the building.
+
+:: Reva :: We need to get back inside. Now.
+
+* [Rush back to the booth — make the final call] -> @editorial_choice
+* [Stay and watch — we need to know who it is] -> @editorial_choice
+
+:::else
+
+:: Reva :: Coast is clear. No signs of enforcement patrols.
+
+:: Reva :: We've got a stronger signal now. Time to make it count.
+
+* [Back to the booth — time for the big decision] -> @editorial_choice
+
+:::

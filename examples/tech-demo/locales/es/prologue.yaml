@@ -1,0 +1,12 @@
+locale: es
+overrides:
+  - index: 2
+    content: "Las pantallas se apagaron hace tres semanas. Todos los canales — muertos. Todas las señales — silenciadas."
+  - index: 3
+    content: "Lo llamaron una 'medida de seguridad temporal.' Pero tú sabes la verdad."
+  - index: 5
+    content: "En algún lugar de esta ciudad, detrás de una puerta cerrada y un muro insonorizado, una señal sigue viva."
+  - index: 6
+    content: "Tu señal."
+  - index: 7
+    content: "La última transmisión."

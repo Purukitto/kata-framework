@@ -1,0 +1,14 @@
+locale: es
+overrides:
+  - index: 1
+    speaker: "Reva"
+    content: "Llegaste. Empezaba a pensar que te habían atrapado a ti también."
+  - index: 2
+    speaker: "Reva"
+    content: "El equipo está caliente. Tenemos quizás una hora antes de que triangule nuestra señal de nuevo."
+  - index: 3
+    speaker: "Reva"
+    content: "Tenemos ${listeners} oyentes ahora mismo. No es mucho, pero cada oído cuenta."
+  - index: 4
+    speaker: "Reva"
+    content: "Entonces — ¿qué ponemos al aire esta noche?"

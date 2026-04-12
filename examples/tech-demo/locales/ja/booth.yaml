@@ -1,0 +1,14 @@
+locale: ja
+overrides:
+  - index: 1
+    speaker: "レヴァ"
+    content: "来てくれたのね。あなたも捕まったかと思い始めてた。"
+  - index: 2
+    speaker: "レヴァ"
+    content: "機材は温まってる。彼らが信号を三角測量するまで、あと一時間くらいかな。"
+  - index: 3
+    speaker: "レヴァ"
+    content: "今${listeners}人のリスナーがいる。多くはないけど、一人一人が大切。"
+  - index: 4
+    speaker: "レヴァ"
+    content: "それで——今夜は何を放送する？"

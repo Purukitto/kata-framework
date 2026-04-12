@@ -1,0 +1,33 @@
+---
+id: first_broadcast
+title: First Broadcast
+multiplayer:
+  choicePolicy: first-writer
+---
+
+// The player chose to broadcast — the signal goes out
+
+[bg src="studio-night.jpg"]
+
+:: Reva :: Alright, we're live. I'll handle the board — you take the mic.
+
+[exec]
+ctx.broadcastsAired += 1;
+ctx.listeners += 150;
+[/exec]
+
+:: Operator :: This is Radio Free Signal, broadcasting on an open frequency. If you can hear this, you are not alone.
+
+:: Operator :: Three weeks of silence. Three weeks of darkness. But tonight, we break through.
+
+[wait 1000]
+
+:: Operator :: We have reports coming in from across the city. The blackout isn't what they told you. It's not security — it's control.
+
+:: Reva :: Signal's holding steady. We've got ${listeners} listeners now. They're tuning in.
+
+:: Reva :: Incoming calls on multiple lines. Sounds like we stirred something up.
+
+* [Patch through Maria — she's reporting from the protests] -> @caller_maria
+* [Take the anonymous tip — could be our informant Vex] -> @caller_vex
+* [Answer the enforcement frequency — someone official wants to talk] -> @caller_hale

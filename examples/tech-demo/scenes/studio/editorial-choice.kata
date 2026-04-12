@@ -1,0 +1,42 @@
+---
+id: editorial_choice
+title: The Editorial Decision
+multiplayer:
+  choicePolicy: vote
+  syncPoint: editorial
+---
+
+// Major decision point — what to broadcast with gathered intel
+
+[bg src="studio-night.jpg"]
+
+:: Reva :: Alright, we've been on the air for a while now. ${listeners} listeners.
+
+:: Reva :: We have ${intel} pieces of intel. That's enough to paint a picture.
+
+[wait 1000]
+
+:: Reva :: The question is — how far do we go tonight?
+
+:::if{cond="intel >= 3"}
+
+:: Reva :: We have enough to blow this whole thing open. The memos, the plan, everything.
+
+* [Run the full expose — the people deserve the truth] -> @expose
+* [Play it safe — share what we can without burning sources] -> @liberation
+* [Pull the plug — we've done enough for one night] -> @underground
+
+:::elseif{cond="intel >= 1"}
+
+:: Reva :: We don't have the full story yet, but we can still make waves.
+
+* [Share what we know — every piece matters] -> @liberation
+* [Go dark — save it for when we have the full picture] -> @underground
+
+:::else
+
+:: Reva :: We don't have much to go on tonight.
+
+* [Sign off — live to broadcast another day] -> @shutdown
+
+:::

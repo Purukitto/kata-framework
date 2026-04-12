@@ -1,0 +1,18 @@
+locale: es
+overrides:
+  - index: 1
+    speaker: "Reva"
+    content: "Lo entiendo. Algunas noches el riesgo no vale la pena."
+  - index: 2
+    speaker: "Reva"
+    content: "Intentaremos de nuevo mañana. La señal seguirá aquí."
+  - index: 3
+    content: "Apagas el transmisor. El estudio queda en silencio."
+  - index: 5
+    content: "Afuera, la ciudad duerme bajo su manta de silencio impuesto. Nadie escucha lo que no dijiste."
+  - index: 6
+    content: "Pero el equipo sigue caliente. La antena sigue en pie."
+  - index: 7
+    content: "Mañana es otra noche."
+  - index: 8
+    content: "FIN — La estación se apaga. Por ahora."

@@ -1,0 +1,46 @@
+---
+id: expose
+title: The Expose
+---
+
+// Content warning: this scene is tagged with "distressing content" and "political violence"
+// The content-warnings plugin will fire onWarn before entering this scene
+
+[bg src="studio-night.jpg"]
+
+:: Reva :: This is it. Everything we've gathered. Are you ready?
+
+[wait 1000]
+
+:: Operator :: This is Radio Free Signal with a special broadcast. What follows is not speculation. It is documented fact.
+
+[exec]
+ctx.broadcastsAired += 1;
+ctx.listeners += 800;
+ctx.suspicion += 3;
+[/exec]
+
+:: Operator :: The media blackout was ordered six months before it began. Internal memos show a coordinated plan to silence all independent communication.
+
+[tween target="signal-meter" property="width" from="40" to="95" duration="1200" easing="ease-out"]
+
+:: Operator :: Enforcement squads were given lists. Names of journalists, broadcasters, anyone with a transmitter.
+
+[wait 800]
+
+:: Operator :: We have those lists. We have the memos. And now, so do you.
+
+:: Reva :: Signal strength is maxed out. ${listeners} listeners. This is the biggest broadcast we've ever done.
+
+[tween target="alert-light" property="opacity" from="0" to="1" duration="600"]
+
+:: Reva :: But the threat meter just spiked. Suspicion is at ${suspicion}. They know where we are.
+
+:: Operator :: Let them come. The truth is already out there.
+
+[wait 1500]
+
+:: Narrator :: The broadcast echoes across the city. There is no taking it back now.
+
+* [Sign off and evacuate — the story is out] -> @liberation
+* [Keep broadcasting — every second counts] -> @liberation

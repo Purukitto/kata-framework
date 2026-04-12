@@ -1,0 +1,45 @@
+---
+id: caller_hale
+title: Director Hale
+---
+
+// Authority agent contacts the station directly
+
+[bg src="studio-night.jpg"]
+
+[wait 500]
+
+:: Reva :: There's someone on the emergency line. It's... an enforcement frequency.
+
+[exec]
+ctx.suspicion += 2;
+[/exec]
+
+:: Hale :: Good evening, Operator. This is Director Hale, Bureau of Information Integrity.
+
+:: Hale :: I want you to know — I'm not here to threaten you. I'm here to offer you a way out.
+
+:: Operator :: We're listening, Director.
+
+:: Hale :: You've built something impressive. ${listeners} listeners. That's real reach.
+
+:: Hale :: The Bureau could use someone with your skills. On the right side.
+
+[wait 1000]
+
+:: Reva :: Don't listen. This is how they got Station 7. A deal, then silence.
+
+:: Hale :: Your friend is paranoid. But I understand. Trust is earned.
+
+:: Hale :: I'll leave the frequency open. When you're ready to talk — and you will be — call me.
+
+[exec]
+ctx.intel += 1;
+[/exec]
+
+:: Reva :: That was Director Hale. The fact that he called us directly means we're on their radar.
+
+:: Reva :: Suspicion is at ${suspicion}. We need to be careful from here.
+
+* [Head to the signal tower — boost our range before they find us] -> @signal_tower
+* [Back to the booth — decide our next move] -> @booth

@@ -1,0 +1,31 @@
+---
+id: prologue
+title: The Blackout
+---
+
+// The story opens. The world has gone dark.
+// Initialize game state
+
+[exec]
+ctx.intel = 0;
+ctx.suspicion = 0;
+ctx.listeners = 0;
+ctx.revaTrust = 0;
+ctx.broadcastsAired = 0;
+[/exec]
+
+[bg src="static-overlay.png"]
+
+:: Narrator :: The screens went dark three weeks ago. Every channel — dead. Every feed — silenced.
+
+:: Narrator :: They called it a "temporary security measure." But you know better.
+
+[wait 1500]
+
+:: Narrator :: Somewhere in this city, behind a locked door and a wall of soundproofing, a signal still lives.
+
+:: Narrator :: Your signal.
+
+:: Narrator :: The last broadcast.
+
+* [Enter the studio] -> @booth

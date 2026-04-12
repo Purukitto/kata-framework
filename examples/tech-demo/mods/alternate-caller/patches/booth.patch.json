@@ -1,0 +1,18 @@
+{
+  "meta": {
+    "title": "The Broadcast Booth (Modded)"
+  },
+  "actions": [
+    {
+      "op": "insertBefore",
+      "index": 5,
+      "actions": [
+        {
+          "type": "text",
+          "speaker": "Reva",
+          "content": "There's also a strange signal on the backup frequency. Someone wants to talk."
+        }
+      ]
+    }
+  ]
+}

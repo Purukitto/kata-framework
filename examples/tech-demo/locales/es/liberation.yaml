@@ -1,0 +1,23 @@
+locale: es
+overrides:
+  - index: 1
+    content: "La transmisión corta la estática como una cuchilla."
+  - index: 3
+    content: "Por toda la ciudad, los receptores crepitan. En apartamentos y sótanos, en autos estacionados y trastiendas — la gente escucha."
+  - index: 4
+    speaker: "Reva"
+    content: "Estamos recibiendo respuestas. Decenas. Están retransmitiendo la señal."
+  - index: 5
+    speaker: "Reva"
+    content: "${listeners} oyentes y subiendo. La cadena de retransmisión se expande."
+  - index: 6
+    speaker: "Operador"
+    content: "Esta es Radio Señal Libre. No seremos silenciados."
+  - index: 8
+    content: "Por primera vez en tres semanas, la ciudad escucha una voz que no es la de ellos."
+  - index: 9
+    content: "No es mucho. Una transmisión. Una noche. Una señal en un mar de estática."
+  - index: 10
+    content: "Pero ${listeners} personas escucharon la verdad esta noche. Y eso es un comienzo."
+  - index: 11
+    content: "FIN — La señal vive."

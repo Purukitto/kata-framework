@@ -1,0 +1,26 @@
+---
+id: underground
+title: Going Underground
+---
+
+[bg src="studio-night.jpg"]
+
+:: Reva :: Smart move. We save what we have. Build the case. Come back stronger.
+
+[exec]
+ctx.broadcastsAired += 1;
+[/exec]
+
+:: Operator :: This is Radio Free Signal, signing off for tonight. But we'll be back.
+
+:: Narrator :: You power down the transmitter and begin packing the equipment.
+
+:: Narrator :: The studio won't be safe after tonight. Time to find a new location.
+
+:: Reva :: I know a place on the east side. Abandoned print shop. Good acoustics.
+
+[wait 1500]
+
+:: Narrator :: You gathered ${intel} pieces of intel. Reached ${listeners} listeners. The story isn't over — it's just beginning.
+
+:: Narrator :: END — The station goes underground. The signal will return.

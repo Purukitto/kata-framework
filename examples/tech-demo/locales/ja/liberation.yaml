@@ -1,0 +1,23 @@
+locale: ja
+overrides:
+  - index: 1
+    content: "放送が刃のようにノイズを切り裂く。"
+  - index: 3
+    content: "街中で受信機が息を吹き返す。アパートや地下室、駐車場や裏部屋で——人々が聴いている。"
+  - index: 4
+    speaker: "レヴァ"
+    content: "反応が来てる。何十件も。信号を中継してくれてる。"
+  - index: 5
+    speaker: "レヴァ"
+    content: "${listeners}人のリスナー、まだ増えてる。中継チェーンが広がっている。"
+  - index: 6
+    speaker: "オペレーター"
+    content: "こちらはラジオ・フリー・シグナル。我々は沈黙させられない。"
+  - index: 8
+    content: "三週間ぶりに、街は彼らのものではない声を聞いた。"
+  - index: 9
+    content: "大したことじゃない。一回の放送。一夜。ノイズの海の中の一つの信号。"
+  - index: 10
+    content: "だが今夜${listeners}人が真実を聞いた。それが始まりだ。"
+  - index: 11
+    content: "終幕——信号は生き続ける。"

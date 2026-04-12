@@ -1,0 +1,18 @@
+locale: ja
+overrides:
+  - index: 1
+    speaker: "レヴァ"
+    content: "わかるわ。リスクに見合わない夜もある。"
+  - index: 2
+    speaker: "レヴァ"
+    content: "明日また挑戦しましょう。信号はまだここにある。"
+  - index: 3
+    content: "送信機の電源を落とす。スタジオが静寂に包まれる。"
+  - index: 5
+    content: "外では、街が強制された静寂の毛布の下で眠っている。あなたが言わなかったことを、誰も聞かない。"
+  - index: 6
+    content: "だが機材はまだ温かい。アンテナはまだ立っている。"
+  - index: 7
+    content: "明日はまた別の夜だ。"
+  - index: 8
+    content: "終幕——放送局は沈黙する。今のところは。"

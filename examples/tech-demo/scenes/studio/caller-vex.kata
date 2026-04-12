@@ -1,0 +1,44 @@
+---
+id: caller_vex
+title: Caller — Vex
+---
+
+// Vex is an inside informant. High risk, high intel.
+
+[bg src="studio-night.jpg"]
+
+:: Vex :: Don't use my name on the air. You know the rules.
+
+:: Operator :: Understood. Go ahead — you're on a secure line.
+
+:: Vex :: The blackout isn't a glitch. It's not maintenance. It's a directive from the top.
+
+[exec]
+ctx.intel += 2;
+ctx.suspicion += 1;
+[/exec]
+
+:: Vex :: I have documents. Internal memos. They planned this months in advance.
+
+[wait 1200]
+
+:: Vex :: The enforcement bureau has a list. Stations like yours — they're shutting them down one by one.
+
+[exec]
+ctx.suspicion += 1;
+[/exec]
+
+:: Reva :: Suspicion level is rising. We're at ${suspicion} on the threat meter.
+
+:::if{cond="suspicion >= 3"}
+
+:: Reva :: That's getting dangerous. They might be triangulating us right now.
+
+:::
+
+:: Vex :: I'll send what I have to your dead drop. But after this — I go dark.
+
+:: Reva :: We now have ${intel} pieces of intel. The picture is getting clearer.
+
+* [Head to the signal tower — boost our range] -> @signal_tower
+* [Back to the booth — keep digging] -> @booth

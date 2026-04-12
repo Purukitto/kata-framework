@@ -1,0 +1,31 @@
+---
+id: booth
+title: The Broadcast Booth
+---
+
+// The main hub — the player decides what to broadcast
+
+[bg src="studio-night.jpg"]
+
+:: Reva :: You made it. I was starting to think they got to you too.
+
+:: Reva :: The equipment's warmed up. We've got maybe an hour before they triangulate our signal again.
+
+:: Reva :: We have ${listeners} listeners right now. Not much, but every ear counts.
+
+:: Reva :: So — what are we putting on the air tonight?
+
+:::if{cond="intel >= 3"}
+
+:: Reva :: We've got enough intel to run the full story. This could change everything — or end us.
+
+* [Air the full expose — damn the consequences] -> @expose
+* [Lead with the news — build our audience first] -> @first_broadcast
+* [Sign off — it's too dangerous tonight] -> @shutdown
+
+:::else
+
+* [Lead with the news — people need to know what's happening] -> @first_broadcast
+* [Sign off — it's too dangerous tonight] -> @shutdown
+
+:::

@@ -1,0 +1,46 @@
+---
+id: caller_maria
+title: Caller — Maria
+---
+
+// Maria reports from the streets. She builds trust and audience.
+
+[bg src="studio-night.jpg"]
+
+:: Maria :: Can you hear me? I'm at the Central District barricade. There are hundreds of people here.
+
+:: Maria :: They're not rioting. They're just... standing. Holding signs. Holding phones with no signal.
+
+[exec]
+ctx.listeners += 200;
+ctx.revaTrust += 1;
+[/exec]
+
+:: Reva :: Our listener count just jumped to ${listeners}. Maria's story is resonating.
+
+:: Maria :: The enforcement teams are here too. They're watching. Recording faces.
+
+[wait 800]
+
+:: Maria :: People are scared, but they came anyway. They need to know someone is watching back.
+
+[exec]
+ctx.intel += 1;
+[/exec]
+
+:: Operator :: Thank you, Maria. Stay safe out there.
+
+:: Reva :: Good call patching her in. The audience trusts us more now.
+
+[exec]
+ctx.revaTrust += 1;
+[/exec]
+
+:::if{cond="intel >= 3"}
+
+:: Reva :: That's enough pieces of the puzzle. I think we can tell the full story now.
+
+:::
+
+* [Head to the signal tower — boost our range] -> @signal_tower
+* [Back to the booth — take another call] -> @booth
