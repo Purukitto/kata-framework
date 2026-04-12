@@ -10,6 +10,7 @@
 > 4. **Commit all changes** — use conventional commit messages (`feat:`, `fix:`, etc.), no `Co-Authored-By` trailers
 > 5. Changeset is created and packages are published
 > 6. **This roadmap is updated** — check off completed items, update current version
+> 7. **`CLAUDE.md` is updated** — add new packages to the build table, the architecture section, the testing table, and any relevant patterns so future Claude sessions have full context for the new surface area
 
 Current version: `0.10.0` — Parser, runtime, store, audio, save/load, modding (VFS + scene merge), asset preloading, React bindings, CLI, VS Code syntax highlighting, plugin system, undo/rewind, error diagnostics, test utilities, LSP (diagnostics, autocomplete, hover, go-to-def, symbols), scene graph visualization (CLI + VS Code), syntax extensions (`[wait]`, `[exec]`, `:::else`/`:::elseif`, comments, `[audio]`), localization (i18n), branching analytics plugin, accessibility (a11y hints + React ARIA/keyboard hooks), animation/tween timelines, plugin ecosystem (subpath exports, profanity filter, auto-save, debug logger, content warnings, validation utility, plugin scaffolder, authoring guide), multiplayer (sync protocol, BroadcastChannel + WebSocket transports, host-authoritative rooms, choice policies, player presence, state partitioning, React hook), Web Audio (`WebAudioManager` with channels, crossfading, autoplay policy), asset pipeline (`AssetPipeline` with LRU cache, concurrent loading, progress tracking), `.kata` audio syntax (`[audio play/stop/pause/volume]`), production React layer (`TypewriterText`, `SceneTransition`, `TweenTarget`/`useTween`, `SaveManager`/`useSaveSlots`), runtime resilience (graceful scene resolution, evaluation sandbox hardening, React error boundary), **developer experience (`@kata-framework/devtools` plugin + React overlay with inspector/timeline/profiler/console/events panels, behavioral `StoryTestRunner` test harness)**.
 
@@ -229,6 +230,7 @@ engine.on("preload", (assets) => pipeline.preload(assets.map(a => a.url)));
 - [x] `.kata` audio syntax: `[audio play/stop/pause/volume]` with parser diagnostics
 - [x] Subpath exports added: `@kata-framework/core/audio`, `@kata-framework/core/assets`
 - [x] Package READMEs updated (`kata-core`)
+- [x] `CLAUDE.md` updated with new architecture, build, and testing entries
 - [x] Changesets created for `kata-core` (minor)
 - [x] `bun run release` — published `@kata-framework/core@0.7.0`
 
@@ -447,6 +449,7 @@ function SaveMenu() {
 - [x] Tween renderer applies CSS transforms from engine tween frames
 - [x] Save slot manager with localStorage persistence
 - [x] Package READMEs updated (`kata-react`)
+- [x] `CLAUDE.md` updated with new architecture, build, and testing entries
 - [x] Changesets created for `kata-react` (minor)
 - [x] `bun run release` — published `@kata-framework/react@0.8.0`
 
@@ -606,6 +609,7 @@ import { KataErrorBoundary } from "@kata-framework/react";
 - [x] Evaluation sandbox hardened against loops, prototype pollution, blocked globals
 - [x] `<KataErrorBoundary>` catches render errors with recovery UI
 - [x] Package READMEs updated (`kata-core`, `kata-react`)
+- [x] `CLAUDE.md` updated with new architecture, build, and testing entries
 - [x] Changesets created for `kata-core` (minor), `kata-react` (minor)
 - [x] `bun run release` — published `@kata-framework/core@0.9.0`, `@kata-framework/react@0.9.0`
 
@@ -714,6 +718,7 @@ expect(story.speakerLog).toContain("Narrator");
 - [x] Devtools overlay working in browser
 - [x] `StoryTestRunner` tested and documented
 - [x] Package READMEs updated (`kata-devtools`, `kata-test-utils`)
+- [x] `CLAUDE.md` updated with new architecture, build, and testing entries
 - [x] Changesets created for affected packages
 - [x] `bun run release` — publish `@kata-framework/devtools@0.1.0`, `@kata-framework/test-utils` (minor)
 
@@ -819,6 +824,7 @@ The framework is production-ready. Now make it learnable. A documentation site h
 - [ ] Multiplayer guide published
 - [ ] Plugin authoring guide migrated to docs site
 - [ ] Root README links to docs site
+- [ ] `CLAUDE.md` updated with new architecture, build, and testing entries
 - [ ] Version `1.0.0` — stable API surface commitment
 - [ ] Changesets for all packages (major version bump)
 - [ ] `bun run release` — publish all packages at `1.0.0`
@@ -943,6 +949,7 @@ Authors shouldn't need VS Code. A browser-based `.kata` editor lowers the barrie
 - [ ] Published as `@kata-framework/editor`
 - [ ] Hosted on docs site as "/editor" or "/playground"
 - [ ] Package README with screenshots and usage guide
+- [ ] `CLAUDE.md` updated with new architecture, build, and testing entries
 - [ ] Changesets created for `kata-editor` (initial)
 - [ ] `bun run release` — publish `@kata-framework/editor@0.1.0`
 
@@ -1130,6 +1137,7 @@ Everything is built. Now prove it works together. This phase produces a polished
 - [ ] Co-op mode works across two browser tabs
 - [ ] Japanese locale fully functional
 - [ ] Root README updated with "Try the Showcase" section linking to the example
+- [ ] `CLAUDE.md` updated with new architecture, build, and testing entries
 - [ ] Changesets created for affected packages
 - [ ] `bun run release` — publish updated packages
 
