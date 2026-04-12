@@ -13,6 +13,8 @@
     "release": "bun run build && changeset publish"
   },
   "devDependencies": {
-    "@changesets/cli": "^2.29.8"
+    "@changesets/cli": "^2.29.8",
+    "@kata-framework/react": "workspace:*",
+    "happy-dom": "^20.8.9"
   }
 }

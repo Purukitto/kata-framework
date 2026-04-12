@@ -13,11 +13,13 @@ Kata Framework is a headless runtime designed for creating interactive narrative
 | Package | Description |
 |---------|-------------|
 | [`@kata-framework/core`](./packages/kata-core) | Pure headless engine — parser, runtime, store, audio, VFS, modding, assets |
-| [`@kata-framework/react`](./packages/kata-react) | React 19 bindings — `<KataProvider>`, `useKata()`, `KataDebug` |
+| [`@kata-framework/react`](./packages/kata-react) | React 19 bindings — `<KataProvider>`, `useKata()`, `TypewriterText`, `SceneTransition`, `TweenTarget`, `SaveManager`, `KataErrorBoundary` |
 | [`@kata-framework/cli`](./packages/kata-cli) | CLI tool — build, watch, and graph `.kata` files |
 | [`@kata-framework/test-utils`](./packages/kata-test-utils) | Test utilities — `createTestEngine()`, `collectFrames()`, `assertFrame()` |
 | [`@kata-framework/lsp`](./packages/kata-lsp) | Language Server Protocol — diagnostics, autocomplete, hover, go-to-definition |
 | [`kata-vscode`](./packages/kata-vscode) | VS Code extension — syntax highlighting, LSP integration, scene graph webview |
+| [`@kata-framework/sync`](./packages/kata-sync) | Multiplayer sync — BroadcastChannel + WebSocket transports, host-authoritative rooms |
+| [`create-kata-story`](./packages/create-kata) | Project scaffolder — `bun create kata-story my-story` with template options |
 | [`create-kata-plugin`](./packages/create-kata-plugin) | Scaffolder for creating new Kata plugins |
 
 ---
@@ -47,7 +49,15 @@ bun create kata-plugin my-feature
 
 ## Quick Start
 
-### Installation
+### Create a New Project
+
+```bash
+bun create kata-story my-story
+bun create kata-story my-story --template react
+bun create kata-story my-story --template multiplayer
+```
+
+### Or Install Manually
 
 ```bash
 # Core engine (required)
@@ -658,6 +668,75 @@ Choreograph visual sequences alongside narrative in `.kata` files. The engine em
 ```
 
 Tweens are **fire-and-forget** (like audio): the engine emits the tween frame, then auto-advances. Use any animation library (Framer Motion, GSAP, CSS transitions) on the UI side.
+
+---
+
+## Multiplayer
+
+Kata supports shared narrative experiences via `@kata-framework/sync`. The engine itself doesn't change -- multiplayer is a wrapper layer.
+
+### BroadcastChannel (same device)
+
+```ts
+import { KataEngine } from "@kata-framework/core";
+import { KataSyncManager, BroadcastChannelTransport } from "@kata-framework/sync";
+
+const engine = new KataEngine();
+engine.registerScene(myScene);
+
+const transport = new BroadcastChannelTransport();
+const sync = new KataSyncManager(engine, transport);
+
+await sync.connect("my-room", { playerId: "player-1" });
+sync.start("intro"); // First to connect is authority
+```
+
+### WebSocket (networked)
+
+```ts
+// Server
+import { KataServer } from "@kata-framework/sync/server";
+const server = new KataServer({ port: 3000 });
+server.start();
+
+// Client
+import { WebSocketTransport } from "@kata-framework/sync";
+const transport = new WebSocketTransport("ws://localhost:3000", {
+  playerId: "player-1",
+  scenes: [myScene],
+});
+```
+
+### Choice Policies
+
+```ts
+sync.setChoicePolicy({ type: "first-writer" });         // First click wins
+sync.setChoicePolicy({ type: "designated", playerId: "dm" }); // DM decides
+sync.setChoicePolicy({ type: "vote", timeout: 10000, resolver: majorityWins });
+```
+
+### State Partitioning
+
+For branching narratives where players explore independently, use `StatePartition` to track per-player state and sync points where branches reconverge.
+
+```yaml
+# In .kata frontmatter
+multiplayer:
+  mode: branching
+  choicePolicy: per-player
+  syncPoint: @boss/fight
+```
+
+### React Hook
+
+```tsx
+import { useKataMultiplayer } from "@kata-framework/react";
+
+function Game({ syncManager }) {
+  const { frame, players, isAuthority, actions } = useKataMultiplayer(syncManager);
+  return <div>{frame && <p>{frame.action.content}</p>}</div>;
+}
+```
 
 ---
 
