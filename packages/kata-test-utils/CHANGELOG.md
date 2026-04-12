@@ -1,5 +1,11 @@
 # @kata-framework/test-utils
 
+## 0.3.0
+
+### Minor Changes
+
+- 5b1fc30: Add `StoryTestRunner` — behavioral test harness that lets you drive narratives by player intent (`advanceUntilChoice`, `advanceUntilText`, `choose(label)`) rather than tracking frame indices. Includes `dialogueLog`, `speakerLog`, `currentChoices`, `ctx`, and `canReach()` for static graph reachability. Throws with available labels when `choose()` can't find a match.
+
 ## 0.2.6
 
 ### Patch Changes
