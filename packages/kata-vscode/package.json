@@ -1,9 +1,16 @@
 {
   "name": "kata-vscode",
-  "displayName": "Kata Language Support",
+  "displayName": "Kata Framework",
   "description": "Syntax highlighting, language server, and scene graph visualization for .kata narrative files",
-  "version": "0.2.3",
+  "version": "0.2.6",
+  "publisher": "purukitto",
   "private": true,
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/purukitto/kata-framework",
+    "directory": "packages/kata-vscode"
+  },
   "main": "./out/extension.js",
   "engines": {
     "vscode": "^1.85.0"

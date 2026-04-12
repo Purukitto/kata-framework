@@ -1,5 +1,26 @@
 # @kata-framework/lsp
 
+## 0.2.5
+
+### Patch Changes
+
+- Updated dependencies
+  - @kata-framework/core@0.8.0
+
+## 0.2.4
+
+### Patch Changes
+
+- Updated dependencies
+  - @kata-framework/core@0.7.0
+
+## 0.2.3
+
+### Patch Changes
+
+- Updated dependencies
+  - @kata-framework/core@0.6.0
+
 ## 0.2.2
 
 ### Patch Changes

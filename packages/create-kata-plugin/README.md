@@ -1,6 +1,6 @@
 # create-kata-plugin
 
-Scaffold a new [Kata Framework](https://github.com/user/kata-framework) plugin project in seconds.
+Scaffold a new [Kata Framework](https://github.com/purukitto/kata-framework) plugin project in seconds.
 
 ## Usage
 
@@ -50,7 +50,7 @@ bun test    # verify starter test passes
 bun run build
 ```
 
-Then implement your plugin by editing `src/index.ts`. See the [Plugin Authoring Guide](https://github.com/user/kata-framework/blob/main/docs/plugins.md) for hook reference, state management patterns, and publishing tips.
+Then implement your plugin by editing `src/index.ts`. See the [Plugin Authoring Guide](https://github.com/purukitto/kata-framework/blob/main/docs/plugins.md) for hook reference, state management patterns, and publishing tips.
 
 ## Programmatic API
 
