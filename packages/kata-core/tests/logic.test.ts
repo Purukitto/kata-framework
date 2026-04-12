@@ -51,34 +51,24 @@ This is after the conditional.
 
     engine.start("test-condition-true");
 
-    // First frame should be the conditional (which will be processed)
+    // Condition is auto-advanced — first frame is the then-block content
     expect(frames).toHaveLength(1);
     const frame0 = frames[0];
     expect(frame0).toBeDefined();
-    expect(frame0!.action.type).toBe("condition");
+    expect(frame0!.action.type).toBe("text");
+    if (frame0!.action.type === "text") {
+      expect(frame0!.action.content).toBe("This content should be shown.");
+    }
 
-    // Process the conditional
+    // Move to next action — should be the content after the conditional
     engine.next();
 
-    // Should now have the content from the conditional's then block
     expect(frames).toHaveLength(2);
     const frame1 = frames[1];
     expect(frame1).toBeDefined();
     expect(frame1!.action.type).toBe("text");
     if (frame1!.action.type === "text") {
-      expect(frame1!.action.content).toBe("This content should be shown.");
-    }
-
-    // Move to next action
-    engine.next();
-
-    // Should have the content after the conditional
-    expect(frames).toHaveLength(3);
-    const frame2 = frames[2];
-    expect(frame2).toBeDefined();
-    expect(frame2!.action.type).toBe("text");
-    if (frame2!.action.type === "text") {
-      expect(frame2!.action.content).toBe("This is after the conditional.");
+      expect(frame1!.action.content).toBe("This is after the conditional.");
     }
   });
 
@@ -105,24 +95,15 @@ This is after the conditional.
 
     engine.start("test-condition-false");
 
-    // First frame should be the conditional
+    // Condition is auto-advanced — false condition skips directly to content after
     expect(frames).toHaveLength(1);
     const frame0 = frames[0];
     expect(frame0).toBeDefined();
-    expect(frame0!.action.type).toBe("condition");
-
-    // Process the conditional (should skip the then block)
-    engine.next();
-
-    // Should skip directly to the content after the conditional
-    expect(frames).toHaveLength(2);
-    const frame1 = frames[1];
-    expect(frame1).toBeDefined();
-    expect(frame1!.action.type).toBe("text");
-    if (frame1!.action.type === "text") {
-      expect(frame1!.action.content).toBe("This is after the conditional.");
+    expect(frame0!.action.type).toBe("text");
+    if (frame0!.action.type === "text") {
+      expect(frame0!.action.content).toBe("This is after the conditional.");
       // Verify the skipped content is NOT present
-      expect(frame1!.action.content).not.toContain("should NOT be shown");
+      expect(frame0!.action.content).not.toContain("should NOT be shown");
     }
   });
 });

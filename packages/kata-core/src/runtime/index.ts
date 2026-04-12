@@ -1,6 +1,6 @@
 import { EventEmitter } from "eventemitter3";
 import { createGameStore, type GameState } from "./store";
-import { evaluate, interpolate } from "./evaluator";
+import { evaluate, interpolate, createSandboxedExec } from "./evaluator";
 import { evaluateWithDiagnostic, interpolateWithDiagnostic } from "./evaluator";
 import { SnapshotManager, type Migrator } from "./snapshot";
 import { PluginManager } from "./plugin";
@@ -9,7 +9,7 @@ import { validatePlugin } from "../plugins/validate";
 import type { AssetRegistry } from "../assets/index";
 import { generateA11yHints } from "../a11y/index";
 import { LocaleManager } from "../i18n/index";
-import type { KSONScene, KSONFrame, KSONAction, GameStateSnapshot, KataEngineOptions, UndoEntry, LocaleOverride } from "../types";
+import type { KSONScene, KSONFrame, KSONAction, GameStateSnapshot, KataEngineOptions, UndoEntry, LocaleOverride, Diagnostic } from "../types";
 
 export class KataEngine extends EventEmitter {
   private store: ReturnType<typeof createGameStore>;
@@ -21,12 +21,18 @@ export class KataEngine extends EventEmitter {
   private historyDepth: number;
   private hasStarted = false;
   private localeManager = new LocaleManager();
+  private onMissingScene: "throw" | "error-event" | "fallback";
+  private fallbackSceneId: string | undefined;
+  private evalTimeout: number;
 
   constructor(initialCtx: Record<string, any> = {}, options: KataEngineOptions = {}) {
     super();
     this.store = createGameStore(initialCtx);
     this.snapshotManager = new SnapshotManager();
     this.historyDepth = options.historyDepth ?? 50;
+    this.onMissingScene = options.onMissingScene ?? "throw";
+    this.fallbackSceneId = options.fallbackSceneId;
+    this.evalTimeout = options.evalTimeout ?? 100_000;
 
     if (options.locale) this.localeManager.setLocale(options.locale);
     if (options.localeFallback) this.localeManager.setFallback(options.localeFallback);
@@ -48,6 +54,10 @@ export class KataEngine extends EventEmitter {
   // Locale API
   setLocale(locale: string): void {
     this.localeManager.setLocale(locale);
+    // Re-emit the current frame so the UI updates immediately
+    if (this.hasStarted) {
+      this.emitFrame();
+    }
   }
 
   setLocaleFallback(fallback: string): void {
@@ -88,11 +98,73 @@ export class KataEngine extends EventEmitter {
     this.assetRegistry = registry;
   }
 
-  start(sceneId: string): void {
+  private resolveScene(sceneId: string): { scene: KSONScene; resolvedId: string } | null {
     const scene = this.scenes.get(sceneId);
-    if (!scene) {
-      throw new Error(`Scene "${sceneId}" not found`);
+    if (scene) return { scene, resolvedId: sceneId };
+
+    switch (this.onMissingScene) {
+      case "throw":
+        throw new Error(`Scene "${sceneId}" not found`);
+
+      case "error-event":
+        this.emit("error", {
+          level: "error",
+          message: `Scene "${sceneId}" not found`,
+          sceneId,
+        } as Diagnostic);
+        return null;
+
+      case "fallback": {
+        this.emit("error", {
+          level: "error",
+          message: `Scene "${sceneId}" not found, falling back to "${this.fallbackSceneId}"`,
+          sceneId,
+        } as Diagnostic);
+
+        if (!this.fallbackSceneId) {
+          this.emit("error", {
+            level: "error",
+            message: `No fallbackSceneId configured`,
+            sceneId,
+          } as Diagnostic);
+          return null;
+        }
+
+        const fallback = this.scenes.get(this.fallbackSceneId);
+        if (!fallback) {
+          this.emit("error", {
+            level: "error",
+            message: `Fallback scene "${this.fallbackSceneId}" also not found`,
+            sceneId: this.fallbackSceneId,
+          } as Diagnostic);
+          return null;
+        }
+
+        // Inject the missing scene ID into ctx for the fallback scene to use
+        const state = this.store.getState();
+        state.restoreState({
+          ctx: { ...state.ctx, _errorSceneId: sceneId },
+          currentSceneId: state.currentSceneId,
+          currentActionIndex: state.currentActionIndex,
+          history: [...state.history],
+        });
+
+        return { scene: fallback, resolvedId: this.fallbackSceneId };
+      }
     }
+  }
+
+  start(sceneId: string): void {
+    const resolved = this.resolveScene(sceneId);
+    if (!resolved) {
+      // error-event or fallback-failed mode: re-emit current frame if engine was started
+      if (this.hasStarted) {
+        this.emitFrame();
+      }
+      return;
+    }
+
+    const { resolvedId } = resolved;
 
     // Push undo entry only if engine already started (not initial start)
     if (this.hasStarted) {
@@ -103,15 +175,15 @@ export class KataEngine extends EventEmitter {
     // Plugin: beforeSceneChange
     if (this.pluginManager.hasPlugins) {
       const state = this.store.getState();
-      this.pluginManager.runBeforeSceneChange(state.currentSceneId, sceneId, state.ctx);
+      this.pluginManager.runBeforeSceneChange(state.currentSceneId, resolvedId, state.ctx);
     }
 
     // Reset state to the scene via store action
-    this.store.getState().setScene(sceneId);
+    this.store.getState().setScene(resolvedId);
 
     // Emit preload signal if asset registry is configured
     if (this.assetRegistry) {
-      this.emit("preload", this.assetRegistry.getAssetsForScene(sceneId));
+      this.emit("preload", this.assetRegistry.getAssetsForScene(resolvedId));
     }
 
     // Emit the first frame
@@ -193,6 +265,37 @@ export class KataEngine extends EventEmitter {
       return;
     }
 
+    // Handle exec actions (fire-and-forget, auto-advance)
+    if (action && action.type === "exec") {
+      try {
+        const mutableCtx = Object.assign(Object.create(null), structuredClone(state.ctx));
+        const execFn = createSandboxedExec(action.code, this.evalTimeout);
+        execFn(mutableCtx);
+        state.restoreState({
+          ctx: mutableCtx,
+          currentSceneId: state.currentSceneId,
+          currentActionIndex: state.currentActionIndex,
+          history: [...state.history],
+        });
+      } catch (error) {
+        this.emit("error", {
+          level: "error",
+          message: `Exec evaluation failed: ${error instanceof Error ? error.message : String(error)}`,
+          sceneId,
+          actionIndex: currentIndex,
+        });
+      }
+      const totalActions = scene.actions.length;
+      if (currentIndex >= totalActions - 1) {
+        if (this.pluginManager.hasPlugins) this.pluginManager.runOnEnd(sceneId);
+        this.emit("end", { sceneId });
+        return;
+      }
+      // Re-read state after restoreState
+      this.store.getState().nextAction();
+      this.emitFrame();
+      return;
+    }
 
     // Handle condition actions
     if (action && action.type === "condition") {
@@ -399,6 +502,89 @@ export class KataEngine extends EventEmitter {
     // Audio actions are fire-and-forget: emit audio event and auto-advance
     if (action.type === "audio") {
       this.emit("audio", action.command);
+      const totalActions = scene.actions.length;
+      if (currentIndex >= totalActions - 1) {
+        if (this.pluginManager.hasPlugins) this.pluginManager.runOnEnd(sceneId);
+        this.emit("end", { sceneId });
+        return;
+      }
+      this.store.getState().nextAction();
+      this.emitFrame();
+      return;
+    }
+
+    // Exec actions are fire-and-forget: execute code and auto-advance
+    if (action.type === "exec") {
+      try {
+        const mutableCtx = Object.assign(Object.create(null), structuredClone(state.ctx));
+        const execFn = createSandboxedExec(action.code, this.evalTimeout);
+        execFn(mutableCtx);
+        state.restoreState({
+          ctx: mutableCtx,
+          currentSceneId: state.currentSceneId,
+          currentActionIndex: state.currentActionIndex,
+          history: [...state.history],
+        });
+      } catch (error) {
+        this.emit("error", {
+          level: "error",
+          message: `Exec evaluation failed: ${error instanceof Error ? error.message : String(error)}`,
+          sceneId,
+          actionIndex: currentIndex,
+        });
+      }
+      const totalActions = scene.actions.length;
+      if (currentIndex >= totalActions - 1) {
+        if (this.pluginManager.hasPlugins) this.pluginManager.runOnEnd(sceneId);
+        this.emit("end", { sceneId });
+        return;
+      }
+      this.store.getState().nextAction();
+      this.emitFrame();
+      return;
+    }
+
+    // Condition actions: evaluate and splice in the matching branch, then auto-advance
+    if (action.type === "condition") {
+      const { result: conditionResult, error } = evaluateWithDiagnostic(action.condition, state.ctx);
+
+      if (error) {
+        this.emit("error", {
+          level: "error",
+          message: `Condition evaluation failed: ${error}`,
+          sceneId,
+          actionIndex: currentIndex,
+        });
+      }
+
+      if (conditionResult) {
+        const thenActions = [...action.then];
+        scene.actions.splice(currentIndex + 1, 0, ...thenActions);
+      } else {
+        let matched = false;
+        if (action.elseIf) {
+          for (const branch of action.elseIf) {
+            const { result: branchResult, error: branchError } = evaluateWithDiagnostic(branch.condition, state.ctx);
+            if (branchError) {
+              this.emit("error", {
+                level: "error",
+                message: `Condition evaluation failed: ${branchError}`,
+                sceneId,
+                actionIndex: currentIndex,
+              });
+            }
+            if (branchResult) {
+              scene.actions.splice(currentIndex + 1, 0, ...branch.then);
+              matched = true;
+              break;
+            }
+          }
+        }
+        if (!matched && action.else) {
+          scene.actions.splice(currentIndex + 1, 0, ...action.else);
+        }
+      }
+
       const totalActions = scene.actions.length;
       if (currentIndex >= totalActions - 1) {
         if (this.pluginManager.hasPlugins) this.pluginManager.runOnEnd(sceneId);

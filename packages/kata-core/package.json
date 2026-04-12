@@ -1,6 +1,6 @@
 {
   "name": "@kata-framework/core",
-  "version": "0.5.0",
+  "version": "0.8.0",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -11,6 +11,16 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
+    },
+    "./audio": {
+      "types": "./dist/src/audio/web-audio.d.ts",
+      "import": "./dist/src/audio/web-audio.js",
+      "require": "./dist/src/audio/web-audio.cjs"
+    },
+    "./assets": {
+      "types": "./dist/src/assets/pipeline.d.ts",
+      "import": "./dist/src/assets/pipeline.js",
+      "require": "./dist/src/assets/pipeline.cjs"
     },
     "./plugins/analytics": {
       "types": "./dist/src/plugins/analytics.d.ts",

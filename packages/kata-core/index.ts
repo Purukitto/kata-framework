@@ -5,7 +5,7 @@ export { parseKataWithDiagnostics } from "./src/parser/diagnostics";
 // Runtime
 export { KataEngine } from "./src/runtime/index";
 export { createGameStore } from "./src/runtime/store";
-export { evaluate, interpolate } from "./src/runtime/evaluator";
+export { evaluate, interpolate, createSandboxedExec } from "./src/runtime/evaluator";
 export { evaluateWithDiagnostic, interpolateWithDiagnostic } from "./src/runtime/evaluator";
 
 // Plugin
@@ -53,5 +53,6 @@ export type {
   A11yHints,
   LocaleOverride,
   LocaleData,
+  MultiplayerMeta,
 } from "./src/types";
 export type { GameState, GameStore } from "./src/runtime/store";

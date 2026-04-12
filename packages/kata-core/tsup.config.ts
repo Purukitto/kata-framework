@@ -3,6 +3,8 @@ import { defineConfig } from "tsup";
 export default defineConfig({
   entry: [
     "index.ts",
+    "src/audio/web-audio.ts",
+    "src/assets/pipeline.ts",
     "src/plugins/analytics.ts",
     "src/plugins/profanity.ts",
     "src/plugins/auto-save.ts",

@@ -180,6 +180,35 @@ function validateActions(
       }
     }
 
+    if (action.type === "audio") {
+      const cmd = action.command;
+      const validVerbs = ["play", "stop", "pause", "volume", "setVolume", "fade"];
+      if (!validVerbs.includes(cmd.action)) {
+        diagnostics.push({
+          level: "warning",
+          message: `[audio] unknown action verb: "${cmd.action}"`,
+          sceneId,
+          actionIndex: i,
+        });
+      }
+      if (cmd.action === "play" && !("src" in cmd && cmd.src)) {
+        diagnostics.push({
+          level: "warning",
+          message: "[audio play] missing src file",
+          sceneId,
+          actionIndex: i,
+        });
+      }
+      if (!("channel" in cmd && cmd.channel) && !("id" in cmd && cmd.id)) {
+        diagnostics.push({
+          level: "warning",
+          message: "[audio] missing channel",
+          sceneId,
+          actionIndex: i,
+        });
+      }
+    }
+
     if (action.type === "wait" && action.duration === 0) {
       diagnostics.push({
         level: "warning",

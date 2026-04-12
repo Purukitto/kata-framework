@@ -201,8 +201,7 @@ describe("loadSnapshot", () => {
     engine1.on("update", (frame) => frames1.push(frame));
 
     engine1.start("cond");     // index 0: "Before condition."
-    engine1.next();            // index 1: condition action (emits frame with condition)
-    engine1.next();            // processes condition -> splices then actions, advances to index 2
+    engine1.next();            // emitFrame at index 1: condition auto-advances → splices, emits "You have the key!" at index 2
 
     const snapshot = engine1.getSnapshot();
     expect(snapshot.expandedActions).toBeDefined();

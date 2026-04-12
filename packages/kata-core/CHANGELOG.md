@@ -1,5 +1,55 @@
 # @kata-framework/core
 
+## 0.8.0
+
+### Minor Changes
+
+- feat: Runtime resilience & error recovery (Phase 8)
+
+  **@kata-framework/core:**
+
+  - Graceful scene target resolution: `onMissingScene` option with `"throw"` (default), `"error-event"`, and `"fallback"` strategies
+  - Expression evaluation sandbox hardening: blocked globals, loop guard instrumentation, null-prototype exec context
+  - New `evalTimeout` engine option for configurable loop iteration limits
+
+  **@kata-framework/react:**
+
+  - `KataErrorBoundary` component with `reset()`, `restart()`, and `loadLastSave()` recovery actions
+  - Integrates with `SaveManager` for save-based error recovery
+
+## 0.7.0
+
+### Minor Changes
+
+- feat: Web Audio Manager, Asset Pipeline, and .kata audio syntax (Phase 6)
+
+  - `WebAudioManager` — Web Audio API implementation with channel-based architecture (bgm/sfx/voice), crossfading, per-channel + master volume, mute/unmute, autoplay policy handling, LRU buffer cache
+  - `AssetPipeline` — concurrent fetch queue, LRU asset cache, progress tracking via `PreloadHandle.onProgress()`, type-aware decoding (JSON/audio/image)
+  - `.kata` audio syntax: `[audio play channel "src"]`, `[audio stop channel]`, `[audio pause channel]`, `[audio volume channel value]`
+  - `AudioCommand` type extended with `channel`, `src`, `pause`, `volume` actions (backward-compatible)
+  - Subpath exports: `@kata-framework/core/audio`, `@kata-framework/core/assets`
+
+## 0.6.0
+
+### Minor Changes
+
+- feat: Phase 5 — Multiplayer (v0.6.0)
+
+  New `@kata-framework/sync` package with host-authoritative multiplayer:
+
+  - Sync protocol with `SyncEvent` types and `KataSyncTransport` interface
+  - `KataSyncManager` wraps `KataEngine` for authority/follower routing
+  - `BroadcastChannelTransport` for same-device multiplayer (browser tabs)
+  - `WebSocketTransport` + `KataServer` for networked rooms
+  - Choice policies: first-writer, designated player, vote with timeout
+  - Player presence: join/leave events, roster, spectator mode
+  - `StatePartition` for shared vs branching modes with sync point barriers
+  - Authority migration: oldest non-spectator peer inherits on disconnect
+
+  `@kata-framework/core`: Added optional `multiplayer` field to `KSONMeta` and `MultiplayerMeta` type.
+
+  `@kata-framework/react`: Added `useKataMultiplayer()` hook and `KataMultiplayerProvider` context.
+
 ## 0.5.0
 
 ### Minor Changes

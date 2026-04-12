@@ -29,15 +29,20 @@ describe("Locale switching", () => {
       expect(frames[0]!.action.content).toBe("First line.");
     }
 
-    engine.setLocale("ja");
-    engine.next(); // Frame 1: Japanese
-
+    engine.setLocale("ja"); // Re-emits current frame (index 0) in Japanese — frame 1
+    expect(frames).toHaveLength(2);
     if (frames[1]!.action.type === "text") {
-      expect(frames[1]!.action.content).toBe("二行目。");
+      expect(frames[1]!.action.content).toBe("一行目。");
+    }
+
+    engine.next(); // Frame 2: Second line in Japanese
+
+    if (frames[2]!.action.type === "text") {
+      expect(frames[2]!.action.content).toBe("二行目。");
     }
   });
 
-  test("setLocale() does NOT re-emit already-passed frames", () => {
+  test("setLocale() re-emits current frame but does not re-emit already-passed frames", () => {
     const scene: KSONScene = {
       meta: { id: "s1" },
       script: "",
@@ -56,8 +61,10 @@ describe("Locale switching", () => {
     engine.start("s1"); // Emit frame 0
     expect(frames).toHaveLength(1);
 
-    engine.setLocale("ja"); // Should not cause a new frame to be emitted
-    expect(frames).toHaveLength(1);
+    engine.setLocale("ja"); // Re-emits the current frame (frame at index 0)
+    expect(frames).toHaveLength(2);
+    // Only the current frame is re-emitted, not any past frames
+    expect(frames[1]!.state.currentActionIndex).toBe(0);
   });
 
   test("switching back to base locale restores original text", () => {
@@ -83,15 +90,21 @@ describe("Locale switching", () => {
     engine.on("update", (f: KSONFrame) => frames.push(f));
 
     engine.setLocale("ja");
-    engine.start("s1");
+    engine.start("s1"); // Frame 0: Japanese "こんにちは。"
     if (frames[0]!.action.type === "text") {
       expect(frames[0]!.action.content).toBe("こんにちは。");
     }
 
-    engine.setLocale(""); // Back to base
-    engine.next();
+    engine.setLocale(""); // Back to base — re-emits current frame (index 0) in English
+    // Frame 1: re-emitted "Hello." at index 0
+    expect(frames).toHaveLength(2);
     if (frames[1]!.action.type === "text") {
-      expect(frames[1]!.action.content).toBe("World.");
+      expect(frames[1]!.action.content).toBe("Hello.");
+    }
+
+    engine.next(); // Frame 2: "World." in English
+    if (frames[2]!.action.type === "text") {
+      expect(frames[2]!.action.content).toBe("World.");
     }
   });
 });

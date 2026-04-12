@@ -1,14 +1,23 @@
+export interface MultiplayerMeta {
+  mode?: "shared" | "branching";
+  choicePolicy?: string;
+  syncPoint?: string;
+}
+
 export interface KSONMeta {
   id: string;
   title?: string;
   layout?: string;
   assets?: Record<string, string>;
+  multiplayer?: MultiplayerMeta;
 }
 
 export type AudioCommand =
-  | { action: "play"; id: string; loop?: boolean }
-  | { action: "stop"; id: string }
-  | { action: "setVolume"; id: string; volume: number }
+  | { action: "play"; id: string; channel?: string; src?: string; loop?: boolean }
+  | { action: "stop"; id: string; channel?: string }
+  | { action: "pause"; id: string; channel?: string }
+  | { action: "volume"; channel: string; value: number }
+  | { action: "setVolume"; id: string; channel?: string; volume: number }
   | { action: "fade"; id: string; toVolume: number; durationMs: number };
 
 export type KSONAction =
@@ -100,6 +109,9 @@ export interface KataEngineOptions {
   historyDepth?: number;
   locale?: string;
   localeFallback?: string;
+  onMissingScene?: "throw" | "error-event" | "fallback";
+  fallbackSceneId?: string;
+  evalTimeout?: number;
 }
 
 export interface UndoEntry {

@@ -255,6 +255,52 @@ function parseActions(
         return;
       }
 
+      // Handle [audio action channel "src" value] syntax
+      const audioMatch = text.match(
+        /^\[audio\s+(play|stop|pause|volume)\s+(\w+)(?:\s+"([^"]*)")?(?:\s+([\d.]+))?\]$/
+      );
+      if (audioMatch) {
+        const verb = audioMatch[1]!;
+        const channel = audioMatch[2]!;
+        if (verb === "volume") {
+          const value = audioMatch[4] !== undefined ? parseFloat(audioMatch[4]) : 0;
+          actions.push({
+            type: "audio",
+            command: { action: "volume", channel, value },
+          } as KSONAction);
+        } else if (verb === "play") {
+          actions.push({
+            type: "audio",
+            command: { action: "play", id: channel, channel, src: audioMatch[3] || "", loop: false },
+          } as KSONAction);
+        } else if (verb === "stop") {
+          actions.push({
+            type: "audio",
+            command: { action: "stop", id: channel, channel },
+          } as KSONAction);
+        } else if (verb === "pause") {
+          actions.push({
+            type: "audio",
+            command: { action: "pause", id: channel, channel },
+          } as KSONAction);
+        }
+        return;
+      }
+
+      // Handle [audio ...] with invalid/unknown action verb (will be caught by diagnostics)
+      if (/^\[audio\s/.test(text) && text.endsWith("]")) {
+        // Attempt to parse as audio but with unknown verb — push a minimal audio action
+        // so diagnostics can flag it
+        const partialMatch = text.match(/^\[audio\s+(\w+)/);
+        if (partialMatch) {
+          actions.push({
+            type: "audio",
+            command: { action: partialMatch[1] as any, id: "", channel: "" },
+          } as KSONAction);
+        }
+        return;
+      }
+
       // Handle [tween ...] text-based syntax (fallback when not parsed as directive)
       if (/^\[tween\s/.test(text) && text.endsWith("]")) {
         const tween = parseTweenAttrs(text);

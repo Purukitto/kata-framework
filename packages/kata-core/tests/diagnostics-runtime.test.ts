@@ -26,17 +26,17 @@ describe("Runtime Diagnostics", () => {
     const frames: any[] = [];
     engine.on("update", (f) => frames.push(f));
 
+    // start() auto-advances through the condition — broken condition emits error and is treated as false
     engine.start("test");
-    // First frame is the condition action — calling next() evaluates it
-    engine.next();
 
     expect(errors.length).toBeGreaterThan(0);
     expect(errors[0].level).toBe("error");
     expect(errors[0].message).toContain("Condition evaluation failed");
     expect(errors[0].sceneId).toBe("test");
 
-    // Engine should continue — condition treated as false, shows "After condition"
-    expect(frames.length).toBeGreaterThanOrEqual(2);
+    // Engine should continue — condition treated as false, auto-advances to "After condition"
+    expect(frames.length).toBeGreaterThanOrEqual(1);
+    expect(frames[0].action.content).toBe("After condition");
   });
 
   test("engine continues after non-fatal interpolation (missing var returns empty)", () => {

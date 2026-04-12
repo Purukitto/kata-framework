@@ -51,7 +51,7 @@ engine.makeChoice("c_0");
 |--------|-------------|
 | `parseKata(content)` | Parse a `.kata` string → `KSONScene` |
 | `parseKataWithDiagnostics(content)` | Parse with validation warnings/errors |
-| `new KataEngine(ctx, options?)` | Create engine with initial context and options (`historyDepth`) |
+| `new KataEngine(ctx, options?)` | Create engine with initial context and options |
 | `engine.registerScene(scene)` | Register a parsed scene by `scene.meta.id` |
 | `engine.start(sceneId)` | Start a scene, emit the first frame |
 | `engine.next()` | Advance to next action |
@@ -84,6 +84,10 @@ engine.makeChoice("c_0");
 | `${expression}` | Variable interpolation |
 | `[tween target="x" property="y" to="1" duration="500"]` | Animation tween |
 | `[tween-group parallel] ... [/tween-group]` | Grouped tweens (parallel or sequence) |
+| `[audio play bgm "night-rain.mp3"]` | Play audio on a channel |
+| `[audio stop bgm]` | Stop a channel |
+| `[audio pause bgm]` | Pause a channel |
+| `[audio volume bgm 0.3]` | Set channel volume |
 
 ### KSON Action Types
 
@@ -137,6 +141,78 @@ import { validatePlugin } from "@kata-framework/core/plugins/validate";
 | **Content Warnings** | Tag scenes with warning labels, fire callbacks before entry |
 | **Validate** | Runtime plugin validation utility (also used internally by `engine.use()`) |
 
+### Web Audio Manager
+
+Real audio playback using the Web Audio API. Channels (bgm, sfx, voice) with independent volume, crossfading, and browser autoplay policy handling.
+
+```ts
+import { WebAudioManager } from "@kata-framework/core/audio";
+
+const audio = new WebAudioManager({
+  basePath: "/assets/audio/",
+  masterVolume: 0.8,
+  channels: {
+    bgm: { volume: 0.6, loop: true, crossfadeDuration: 1000 },
+    sfx: { volume: 1.0, loop: false },
+    voice: { volume: 1.0, loop: false },
+  },
+});
+
+engine.on("audio", audio.handler);
+
+// Manual controls
+audio.setVolume("bgm", 0.3);
+audio.mute("sfx");
+audio.unmute("sfx");
+audio.stopAll();
+audio.resume(); // handle browser autoplay policy
+audio.preload(["night-rain.mp3", "thunder.wav"]); // decode ahead of time
+```
+
+| Method | Description |
+|--------|-------------|
+| `audio.handler` | Event handler — pass to `engine.on("audio", audio.handler)` |
+| `audio.setVolume(channel, vol)` | Set channel volume (0-1) |
+| `audio.mute(channel)` / `unmute(channel)` | Mute/unmute a channel (restores previous volume) |
+| `audio.stopAll()` | Stop all channels with fade-out |
+| `audio.resume()` | Resume after browser autoplay suspension — flushes queued commands |
+| `audio.preload(urls)` | Decode audio files ahead of time into the buffer cache |
+
+Audio buffers are cached in an LRU cache — second plays are instant. When a BGM track is already playing, starting a new one crossfades automatically.
+
+### Asset Pipeline
+
+Load, cache, and track progress for images, audio, and data files.
+
+```ts
+import { AssetPipeline } from "@kata-framework/core/assets";
+
+const pipeline = new AssetPipeline({
+  basePath: "/assets/",
+  maxConcurrent: 4,       // max parallel fetches
+  maxCacheSize: 200,       // LRU cache entries
+});
+
+// Preload with progress
+const handle = pipeline.preload(["bg/forest.jpg", "audio/wind.mp3", "data/config.json"]);
+handle.onProgress((loaded, total) => console.log(`${loaded}/${total}`));
+const { errors } = await handle.complete;
+
+// Retrieve loaded assets
+const image = pipeline.get("bg/forest.jpg");
+const json = pipeline.get<{ key: string }>("data/config.json");
+
+// Cache management
+pipeline.isLoaded("bg/forest.jpg"); // true
+pipeline.evict("bg/forest.jpg");
+pipeline.clear();
+
+// Integrate with engine preload events
+engine.on("preload", (ids) => pipeline.preload(ids));
+```
+
+Assets are decoded by file extension: `.json` files are parsed, audio files return `ArrayBuffer`, images return `Blob`. The concurrent fetch queue ensures no more than `maxConcurrent` requests are in-flight at once.
+
 ### Additional Modules
 
 - **Save/Load** — `engine.getSnapshot()` / `engine.loadSnapshot(raw)` with Zod validation and versioned migration
@@ -183,3 +259,38 @@ Every `KSONFrame` includes an optional `a11y` field with hints for screen reader
 - **Tween** — `{ description: "target animates property", reducedMotion: true }`
 
 All logic evaluation uses `new Function` with explicit context — never `eval()`.
+
+### Graceful Scene Resolution
+
+By default, navigating to a missing scene throws. Configure `onMissingScene` for graceful error recovery:
+
+```ts
+const engine = new KataEngine(ctx, {
+  onMissingScene: "error-event",  // "throw" (default) | "error-event" | "fallback"
+  fallbackSceneId: "error-scene", // used when onMissingScene is "fallback"
+});
+
+engine.on("error", (diagnostic) => {
+  // { level: "error", message: "Scene \"x\" not found", sceneId: "x" }
+});
+```
+
+| Strategy | Behavior |
+|----------|----------|
+| `"throw"` | Throws `Error` (backward-compatible default) |
+| `"error-event"` | Emits `"error"` event, stays on current scene, does not crash |
+| `"fallback"` | Emits `"error"` event, transitions to `fallbackSceneId`, sets `ctx._errorSceneId` |
+
+### Evaluation Sandbox
+
+Expression evaluation (`evaluate()`, `evaluateWithDiagnostic()`) and exec blocks are sandboxed:
+
+- **Blocked globals** — `process`, `require`, `fetch`, `XMLHttpRequest`, `globalThis`, `window`, `self`, `global`, `__proto__`, `constructor` are shadowed as `undefined` (user context keys with the same name still work)
+- **Loop guard** — exec blocks with `while`/`for`/`do` loops are instrumented with an iteration counter; exceeding `evalTimeout` (default 100,000 iterations) throws an error caught by the engine
+- **Prototype isolation** — exec block context uses a null-prototype object, preventing `__proto__` traversal
+
+```ts
+const engine = new KataEngine(ctx, {
+  evalTimeout: 50_000,  // max loop iterations in exec blocks (default: 100,000)
+});
+```
