@@ -41,18 +41,9 @@ You bought the item.
 
     engine.start("integration_test");
 
-    // Check 2 (Logic): First frame is the :::if condition; it should be evaluated on next()
+    // Check 2 (Logic): Condition is auto-advanced — first frame is the then-block text
     expect(frames.length).toBeGreaterThanOrEqual(1);
-    const firstFrame = frames[0];
-    expect(firstFrame).toBeDefined();
-    expect(firstFrame!.action.type).toBe("condition");
-
-    // Advance so the condition runs (player.gold > 10 is true → then-block runs)
-    engine.next();
-
-    // Second frame should be the text inside the :::if block
-    expect(frames.length).toBeGreaterThanOrEqual(2);
-    const textFrame = frames[1];
+    const textFrame = frames[0];
     expect(textFrame).toBeDefined();
     expect(textFrame!.action.type).toBe("text");
 
@@ -64,8 +55,8 @@ You bought the item.
 
     // Advance to the choice
     engine.next();
-    expect(frames.length).toBeGreaterThanOrEqual(3);
-    const choiceFrame = frames[2];
+    expect(frames.length).toBeGreaterThanOrEqual(2);
+    const choiceFrame = frames[1];
     expect(choiceFrame).toBeDefined();
     expect(choiceFrame!.action.type).toBe("choice");
 
@@ -77,8 +68,8 @@ You bought the item.
     engine.makeChoice(choiceId!);
 
     // After makeChoice we should have a new frame from the "buy" scene
-    expect(frames.length).toBeGreaterThanOrEqual(4);
-    const afterChoice = frames[3];
+    expect(frames.length).toBeGreaterThanOrEqual(3);
+    const afterChoice = frames[2];
     expect(afterChoice).toBeDefined();
     expect(afterChoice!.meta.id).toBe("buy");
     expect(afterChoice!.state.currentSceneId).toBe("buy");

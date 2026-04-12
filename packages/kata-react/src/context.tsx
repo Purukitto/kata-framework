@@ -1,7 +1,8 @@
 import React, { createContext, useContext, useRef, type ReactNode } from "react";
 import { KataEngine, type KSONScene } from "@kata-framework/core";
+import { TweenProvider } from "./TweenContext";
 
-interface KataContextType {
+export interface KataContextType {
   engine: KataEngine;
 }
 
@@ -28,10 +29,14 @@ export function KataProvider({ children, config, initialScenes }: KataProviderPr
 
   return (
     <KataContext.Provider value={{ engine: engineRef.current }}>
-      {children}
+      <TweenProvider>
+        {children}
+      </TweenProvider>
     </KataContext.Provider>
   );
 }
+
+export { KataContext };
 
 export const useKataEngine = (): KataEngine => {
   const context = useContext(KataContext);
