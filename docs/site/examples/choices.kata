@@ -1,0 +1,10 @@
+---
+id: choices
+title: Choices
+---
+
+:: Narrator :: A fork in the path. Which way?
+
+* [Go left] -> @choices
+* [Go right] -> @choices
+* [Stop here]

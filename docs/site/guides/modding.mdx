@@ -1,0 +1,87 @@
+---
+title: Modding
+description: Layer mods on top of a base game with VFS and scene patching.
+section: guides
+order: 6
+---
+
+# Modding
+
+Kata ships two primitives for third-party content: a **layered virtual file system** for asset overlay, and **scene merging** for RFC 7396-style scene patches. Together they let a modder add content, replace lines, or remove whole actions — all without mutating the base game.
+
+## Layered VFS
+
+```ts
+import { LayeredVFS } from "@kata-framework/core";
+
+const vfs = new LayeredVFS();
+vfs.addLayer("base", baseProvider);     // lowest priority
+vfs.addLayer("mod-a", modProvider);     // overrides base
+
+const content = await vfs.readFile("scenes/intro.kata");
+// Returns mod-a's version if it exists, otherwise base
+
+const files = await vfs.listDir("scenes/");
+// Merged directory listing across all layers
+
+vfs.removeLayer("mod-a");
+vfs.getLayers(); // ["base"]
+```
+
+Each layer is a `VFSProvider` — a small interface with `readFile`, `listDir`, and `exists`. Providers can wrap a filesystem, an in-memory map, a fetched JSON bundle, or an IndexedDB store.
+
+The order matters: layers added later have higher priority. When two layers have the same path, the top one wins for `readFile`, but `listDir` merges everything.
+
+## Scene merging
+
+`mergeScene` applies a patch to an existing scene:
+
+```ts
+import { mergeScene } from "@kata-framework/core";
+
+const patched = mergeScene(baseScene, {
+  meta: { title: "Modded Intro" }, // shallow merge on meta
+  actions: [
+    { op: "append", actions: [{ type: "text", speaker: "Mod NPC", content: "New dialogue!" }] },
+    { op: "replace", index: 2, action: { type: "text", speaker: "A", content: "Changed line" } },
+    { op: "remove", index: 5 },
+  ],
+});
+```
+
+| Op | Effect |
+|---|---|
+| `append` | Add actions to the end of the action list |
+| `replace` | Replace the action at `index` with a new one |
+| `remove` | Delete the action at `index` |
+
+The `meta` section deep-merges; `actions` applies the listed operations in order. Indexes refer to the **base scene** — operations never shift each other.
+
+## A typical mod load flow
+
+```ts
+const vfs = new LayeredVFS();
+vfs.addLayer("base", baseProvider);
+
+for (const modId of enabledMods) {
+  vfs.addLayer(modId, await loadModProvider(modId));
+}
+
+// Load a scene through the VFS — returns the overlay if present
+const source = await vfs.readFile("scenes/intro.kata");
+const baseScene = parseKata(source);
+
+// If the mod ships a patch file, apply it
+const patchRaw = await vfs.readFile("scenes/intro.patch.json").catch(() => null);
+const scene = patchRaw ? mergeScene(baseScene, JSON.parse(patchRaw)) : baseScene;
+
+engine.registerScene(scene);
+```
+
+## Load order and conflict resolution
+
+Conflicts are resolved by layer priority, not diff merging. If two mods both patch the same scene at the same index, the higher-priority layer wins. Design your mod loader to:
+
+1. Present mod order to the user.
+2. Warn when two mods patch the same scene (`listDir` + filename match is enough).
+3. Let the user reorder layers before the engine starts.

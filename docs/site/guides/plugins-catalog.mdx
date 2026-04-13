@@ -1,0 +1,53 @@
+---
+title: Plugin catalog
+description: Official and community plugins for Kata Framework.
+section: guides
+order: 2
+---
+
+# Plugin catalog
+
+## Official plugins
+
+Shipped with `@kata-framework/core` as tree-shakeable subpath exports. Zero dependencies.
+
+| Plugin | Import | What it does |
+|---|---|---|
+| **Analytics** | `@kata-framework/core/plugins/analytics` | Tracks scene visits, choice selections, drop-off points, session duration |
+| **Profanity filter** | `@kata-framework/core/plugins/profanity` | Censors text and choice labels with configurable word lists and replacement strategies |
+| **Auto-save** | `@kata-framework/core/plugins/auto-save` | Automatic snapshots on scene changes, choices, or timed intervals with slot rotation |
+| **Debug logger** | `@kata-framework/core/plugins/logger` | Structured lifecycle logging with quiet / normal / verbose levels and custom sinks |
+| **Content warnings** | `@kata-framework/core/plugins/content-warnings` | Tag scenes with warning labels, fire a callback before entering |
+
+### Validation utility
+
+```ts
+import { validatePlugin } from "@kata-framework/core/plugins/validate";
+
+const result = validatePlugin(myPlugin);
+// { valid: true } or { valid: false, errors: [...], warnings: [...] }
+```
+
+`engine.use()` calls this internally — you get clear errors on invalid plugin shapes instead of silent failures.
+
+## Community plugins
+
+Community plugins follow the `kata-plugin-*` naming convention on npm.
+
+| Plugin | npm | Description |
+|---|---|---|
+| *Be the first!* | — | — |
+
+## Submit a plugin
+
+1. Publish to npm with the `kata-plugin-` prefix.
+2. List `@kata-framework/core` as a `peerDependency`.
+3. Open a PR against the kata-framework repo adding a row to the community table with plugin name, npm package, one-line description, and minimum compatible core version.
+
+## Scaffold a new plugin
+
+```bash
+bun create kata-plugin my-feature
+```
+
+See the [plugin authoring guide](/kata/docs/guides/plugins) for the full walk-through.

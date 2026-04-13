@@ -1,0 +1,76 @@
+---
+title: Your first scene
+description: Anatomy of a .kata file — frontmatter, speakers, choices.
+section: start
+order: 2
+playground:
+  scene: hello
+---
+
+# Your first scene
+
+Every Kata story is a collection of `.kata` files. Each file is a scene. A scene has three parts: **frontmatter**, **script**, and **body**.
+
+## The smallest valid scene
+
+```kata
+---
+id: intro
+---
+
+:: Narrator :: Hello world.
+```
+
+Two lines of frontmatter, one line of dialogue. Save this as `scenes/intro.kata`, run `bun dev`, and the engine emits a single `text` frame for your UI to render.
+
+## Try it live
+
+The playground below runs inside your browser. Edit the source on the left and watch the rendered frame update.
+
+<Playground scene="hello" />
+
+## Anatomy
+
+```kata
+---                               # frontmatter (YAML)
+id: intro                         # required, unique scene id
+title: The Beginning              # optional, shown in outlines
+assets:                           # optional, id → URL map
+  bg: /images/forest.jpg
+---
+
+<script>                          # optional, runs once on scene entry
+ctx.player = { name: "Ada", gold: 100 };
+</script>
+
+:: Narrator ::                    # body — a text action
+Welcome, ${player.name}.
+
+* [Look around] -> @forest/clearing   # a choice — jumps to another scene
+* [Keep walking]                       # a choice with no target (just advances)
+```
+
+## The three body primitives
+
+| Syntax | What it emits |
+|---|---|
+| `:: Speaker :: dialogue text` | A `text` action — speaker + content |
+| `* [Label] -> @scene/id` | A `choice` action — a list of labeled branches |
+| `[bg src="file.jpg"]` | A `visual` action — sets a layer on the UI |
+
+Everything else in the body (variables, conditionals, animation, audio) builds on these. We'll meet them in the next pages.
+
+## What the engine gives your UI
+
+When the engine runs a scene, it emits `KSONFrame` objects:
+
+```ts
+engine.on("update", (frame) => {
+  // frame.action === { type: "text", speaker: "Narrator", content: "Hello world." }
+  // frame.state === { ctx, currentSceneId, ... }
+});
+```
+
+The frame is the **only contract** between engine and UI. Your renderer never reads engine internals — it reads frames.
+
+> **Next:** [Variables & logic →](/kata/docs/start/variables)

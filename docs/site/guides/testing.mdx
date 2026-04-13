@@ -1,0 +1,135 @@
+---
+title: Testing stories
+description: Write fast, behavioral tests for your branching narrative.
+section: guides
+order: 4
+---
+
+# Testing stories
+
+Stories are code. Test them like code.
+
+`@kata-framework/test-utils` eliminates the boilerplate of setting up engines, parsing scenes, and collecting frames. You can test scenes declaratively — in a few lines per case — or drive the engine behaviorally the way a player would.
+
+```bash
+bun add -d @kata-framework/test-utils
+```
+
+## `createTestEngine` — one-liner setup
+
+```ts
+import { createTestEngine } from "@kata-framework/test-utils";
+
+const { engine, frames } = createTestEngine(`
+---
+id: test
+---
+:: Narrator :: Hello world
+`, { player: { gold: 100 } });
+
+engine.start("test");
+// `frames` is a live array — it updates as the engine emits
+```
+
+Accepts a single `.kata` string or an array of strings. Registers all scenes. Applies initial context.
+
+## `collectFrames` — auto-advance to the end
+
+```ts
+import { collectFrames } from "@kata-framework/test-utils";
+
+const allFrames = collectFrames(engine, "test");
+```
+
+Options:
+
+- `autoPick?: number` — auto-select a choice by index when encountered (default: stops at first choice)
+- `maxFrames?: number` — safety limit to prevent infinite loops
+
+## `assertFrame` — partial matching
+
+```ts
+import { assertFrame } from "@kata-framework/test-utils";
+
+assertFrame(allFrames[0], {
+  type: "text",
+  speaker: "Narrator",
+  content: "Hello world",
+});
+```
+
+Only checks the fields you provide. No need to build the full frame shape.
+
+## `mockAudioManager` — capture audio commands
+
+```ts
+import { mockAudioManager } from "@kata-framework/test-utils";
+
+const audio = mockAudioManager();
+engine.on("audio", audio.handler);
+
+// After playback
+expect(audio.commands).toEqual([{ action: "play", id: "bgm" }]);
+audio.lastCommand; // most recent
+audio.reset();     // clear
+```
+
+## `StoryTestRunner` — behavioral tests
+
+Instead of asserting on frame indices, describe what the player does.
+
+```ts
+import { StoryTestRunner } from "@kata-framework/test-utils";
+
+const story = new StoryTestRunner([forestKata, leftKata, rightKata]);
+
+story.start("forest");
+story.advanceUntilChoice();
+expect(story.currentChoices).toContain("Take the left path");
+
+story.choose("Take the left path");
+story.advanceUntilText("You find a stream.");
+
+expect(story.dialogueLog).toContain("You find a stream.");
+expect(story.speakerLog).toContain("Narrator");
+expect(story.canReach("right", "forest")).toBe(true);
+expect(story.ctx.visited_forest).toBe(true);
+```
+
+| Method | Behavior |
+|---|---|
+| `start(sceneId)` | Begin playback |
+| `advanceUntilChoice()` | Auto-advance until a choice frame or scene end |
+| `advanceUntilText(substring)` | Auto-advance until a text frame matches |
+| `choose(label)` | Pick a choice by label (throws with available labels on miss) |
+| `canReach(sceneId, fromSceneId?)` | Static graph reachability across all registered scenes |
+
+Getters: `currentFrame`, `currentChoices`, `frames`, `dialogueLog`, `speakerLog`, `ctx`, `isEnded`, `endedScene`.
+
+Constructor accepts a `.kata` string, an array of strings, or pre-parsed `KSONScene[]`. Third arg: `{ maxSteps }` (default 1000).
+
+## Putting it together with bun:test
+
+```ts
+import { expect, test } from "bun:test";
+import { StoryTestRunner } from "@kata-framework/test-utils";
+import forest from "./forest.kata" with { type: "text" };
+import left from "./left.kata" with { type: "text" };
+import right from "./right.kata" with { type: "text" };
+
+test("left path leads to the stream", () => {
+  const story = new StoryTestRunner([forest, left, right]);
+  story.start("forest");
+  story.advanceUntilChoice();
+  story.choose("Take the left path");
+  story.advanceUntilText("You find a stream.");
+  expect(story.dialogueLog).toContain("You find a stream.");
+});
+
+test("right path is reachable from forest", () => {
+  const story = new StoryTestRunner([forest, left, right]);
+  expect(story.canReach("right", "forest")).toBe(true);
+});
+```
+
+Failure messages include the available choice labels and the dialogue seen so far, so broken tests point straight at the problem.

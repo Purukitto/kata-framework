@@ -1,0 +1,34 @@
+---
+title: API reference
+description: Auto-generated TypeDoc reference for every published package.
+section: api
+order: 0
+---
+
+# API reference
+
+This section is generated from TypeScript sources by [TypeDoc](https://typedoc.org/) on every release. If you're looking for tutorials or guides, start with the [Getting Started](/kata/docs/start/install) track instead — the API reference is the deep-dive layer.
+
+## Packages
+
+| Package | Purpose |
+|---|---|
+| [`@kata-framework/core`](/kata/docs/api/core) | Headless engine, parser, runtime, plugins, VFS, snapshots |
+| [`@kata-framework/react`](/kata/docs/api/react) | React 19 bindings — `KataProvider`, `useKata`, save manager, tween layer |
+| [`@kata-framework/sync`](/kata/docs/api/sync) | Multiplayer — authority model, transports, `KataServer` |
+| [`@kata-framework/cli`](/kata/docs/api/cli) | `kata build`, `kata watch`, `kata graph` |
+| [`@kata-framework/lsp`](/kata/docs/api/lsp) | Language Server Protocol for `.kata` files |
+| [`@kata-framework/test-utils`](/kata/docs/api/test-utils) | `createTestEngine`, `StoryTestRunner`, `collectFrames` |
+| [`@kata-framework/devtools`](/kata/docs/api/devtools) | In-browser devtools plugin + React overlay |
+
+## Stability
+
+All packages listed above are at **v1.0.0** and follow semver. Breaking changes require a major bump. See the [changelog](https://github.com/purukitto/kata-framework/blob/main/CHANGELOG.md) for release history.
+
+## Finding things
+
+- **Looking for a hook?** Start in `@kata-framework/react` — everything UI-side lives there.
+- **Looking for a plugin?** They live in `@kata-framework/core/plugins/*` subpaths. The [plugins catalog](/kata/docs/guides/plugins-catalog) is usually faster than browsing the API tree.
+- **Looking for types like `KSONFrame` or `KSONAction`?** They're re-exported from `@kata-framework/core`'s root. The [KSON protocol page](/kata/docs/reference/kson-protocol) is a friendlier entry point.
+
+Use the search box (`/` shortcut) to find a symbol by name across all packages.

@@ -1,0 +1,78 @@
+---
+title: Variables & logic
+description: Use script blocks, interpolation, conditionals, and inline exec.
+section: start
+order: 3
+playground:
+  scene: variables
+---
+
+# Variables & logic
+
+Every scene has a `ctx` — a plain JavaScript object that holds game state. You read it with `${...}` interpolation and write it with `<script>` blocks or inline `[exec]` blocks.
+
+## Set state on scene entry
+
+A `<script>` block runs once, before the body plays:
+
+```kata
+---
+id: intro
+---
+
+<script>
+ctx.player = { name: "Ada", gold: 80 };
+ctx.visited = false;
+</script>
+
+:: Narrator :: Hello, ${player.name}.
+```
+
+## Interpolate values in text
+
+Inline `${expression}` reads from `ctx`:
+
+```kata
+:: Narrator :: You carry ${player.gold} gold.
+```
+
+Expressions are real JavaScript — `${player.gold + 10}`, `${inventory.includes("sword") ? "armed" : "unarmed"}`, etc.
+
+## Branch on conditions
+
+```kata
+:::if{cond="player.gold >= 50"}
+:: Merchant :: Browse my wares?
+:::elseif{cond="player.gold > 0"}
+:: Merchant :: You've got some coin. Here's the bargain bin.
+:::else
+:: Merchant :: Come back when your purse is heavier.
+:::
+```
+
+Conditions are evaluated at runtime, not parse time. Reference anything on `ctx`.
+
+## Mutate mid-scene
+
+Use `[exec] ... [/exec]` to run logic between lines without breaking flow:
+
+```kata
+:: Narrator :: You step on a pressure plate.
+
+[exec]
+ctx.trapTriggered = true;
+ctx.hp -= 10;
+[/exec]
+
+:: Narrator :: A dart whistles past. Hp: ${hp}.
+```
+
+## Try it live
+
+<Playground scene="variables" />
+
+## Security note
+
+All user expressions run through `new Function(ctx, "return (" + expr + ")")`. Kata **never** uses `eval()`. The context argument list is explicit and blocked globals are shadowed. See the [sandbox reference](/kata/docs/reference/kata-file-syntax) for the full list.
+
+> **Next:** [Audio & visuals →](/kata/docs/start/audio-visuals)

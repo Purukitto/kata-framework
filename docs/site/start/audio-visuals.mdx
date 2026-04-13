@@ -1,0 +1,77 @@
+---
+title: Audio & visuals
+description: Set backgrounds, play audio, and choreograph tween animations.
+section: start
+order: 4
+playground:
+  scene: tween
+---
+
+# Audio & visuals
+
+Kata is headless — the engine emits frames; your UI renders them. Visual, audio, and tween actions are fire-and-forget: the engine advances past them immediately, so they never block the dialogue flow.
+
+## Backgrounds and layers
+
+```kata
+[bg src="forest.jpg"]
+[bg src="rain.mp4" transition="fade"]
+```
+
+These emit `visual` frames. Your UI decides how to render a layer — a CSS background, a canvas, a WebGL scene.
+
+## Audio
+
+```kata
+[audio play bgm "theme.mp3"]
+[audio volume bgm 0.5]
+[audio stop bgm]
+```
+
+The engine emits `audio` events. Implement playback with Web Audio, Howler, or the built-in `WebAudioManager`:
+
+```ts
+import { KataEngine } from "@kata-framework/core";
+import { WebAudioManager } from "@kata-framework/core/audio/web-audio";
+
+const audio = new WebAudioManager({ assetBaseUrl: "/audio" });
+const engine = new KataEngine();
+engine.on("audio", (cmd) => audio.handle(cmd));
+```
+
+`WebAudioManager` handles channels, crossfading, and the browser autoplay policy out of the box.
+
+## Tween animations
+
+Tweens choreograph visuals alongside narrative:
+
+```kata
+:: Narrator :: The stranger approaches.
+
+[tween target="stranger" property="x" from="100" to="400" duration="800" easing="ease-in-out"]
+
+[tween-group parallel]
+[tween target="stranger" property="opacity" to="1" duration="500"]
+[tween target="bg" property="blur" to="5" duration="500"]
+[/tween-group]
+
+:: Stranger :: We need to talk.
+```
+
+On the React side, wrap your target element in `<TweenTarget id="stranger">` — the hook subscribes to tween frames for that id and applies the updated property.
+
+```tsx
+import { TweenProvider, TweenTarget } from "@kata-framework/react";
+
+<TweenProvider>
+  <TweenTarget id="stranger" initial={{ x: 100, opacity: 0 }}>
+    {(style) => <img src="stranger.png" style={{ transform: `translateX(${style.x}px)`, opacity: style.opacity }} />}
+  </TweenTarget>
+</TweenProvider>
+```
+
+## Try it live
+
+<Playground scene="tween" />
+
+> **Next:** [Save & load →](/kata/docs/start/save-load)

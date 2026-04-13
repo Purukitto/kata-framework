@@ -1,0 +1,203 @@
+---
+title: .kata file syntax
+description: Complete grammar reference for .kata files — frontmatter, script, narrative, directives.
+section: reference
+order: 1
+---
+
+# `.kata` file syntax
+
+A `.kata` file has three sections, parsed in order:
+
+1. **YAML frontmatter** — scene metadata
+2. **`<script>` block** *(optional)* — JavaScript run once when the scene starts
+3. **Narrative body** — markdown with Kata directives
+
+```kata
+---
+id: intro
+title: The Opening
+assets:
+  bg-forest: /bg/forest.jpg
+  sfx-door: /sfx/door.mp3
+---
+
+<script>
+  ctx.player = { name: "Aria", hp: 100 };
+  ctx.flags = {};
+</script>
+
+[bg src="bg-forest"]
+:: Narrator :: Welcome, ${player.name}.
+
+* [Enter the forest] -> @scene/forest
+* [Turn back] -> @scene/town
+```
+
+## Frontmatter
+
+```yaml
+---
+id: string          # required — unique scene id
+title: string       # optional — human-readable title
+layout: string      # optional — UI hint (e.g. "visual-novel", "text-only")
+assets:             # optional — asset id → URL map
+  hero: /img/hero.png
+multiplayer:        # optional — sync behavior
+  mode: shared | branching
+  choicePolicy: first-writer | designated | vote
+  syncPoint: string
+---
+```
+
+`id` is the only required field. Duplicate ids across files are a parse error.
+
+## `<script>` block
+
+Runs **once** when the scene starts, with `ctx` bound to the shared game state object. Use it to initialize variables or mutate state on entry.
+
+```kata
+<script>
+  ctx.hp ??= 100;
+  ctx.visits = (ctx.visits ?? 0) + 1;
+</script>
+```
+
+Script runs through the same sandboxed `evaluate()` as `[exec]` — blocked globals (`window`, `document`, `fetch`, `process`, ...) are shadowed, and infinite loops are instrumented with a timeout.
+
+## Narrative directives
+
+### Text line
+
+```kata
+:: Speaker :: dialogue content
+```
+
+- `Speaker` is any non-empty string. Use `:: Narrator ::` for narration.
+- `content` is markdown-ish: supports `${expression}` interpolation.
+- Produces `{ type: "text", speaker, content }`.
+
+### Choice list
+
+```kata
+* [Fight] -> @scene/battle
+* [Flee] -> @scene/escape
+* [Talk] -> @scene/dialogue
+```
+
+- Must appear consecutively; the parser groups them into one `{ type: "choice", choices: [...] }`.
+- Labels support `${...}` interpolation.
+- Targets use `@scene/<id>` syntax. Omit `->` for non-navigation choices.
+- Each choice gets an auto-generated `id` (`c_0`, `c_1`, ...) unless specified.
+
+### Visual
+
+```kata
+[bg src="forest.jpg"]
+[bg src="hero" layer="character" effect="fade"]
+```
+
+Produces `{ type: "visual", layer, src, effect? }`. `src` can be an asset id (resolved via `meta.assets`) or a raw URL. Default layer is `"bg"`.
+
+### Wait
+
+```kata
+[wait 2000]
+```
+
+Pauses for `duration` ms. Produces `{ type: "wait", duration: 2000 }`. The engine auto-advances after the UI reports completion.
+
+### Exec block
+
+```kata
+[exec]
+  ctx.hp -= 10;
+  if (ctx.hp <= 0) ctx.dead = true;
+[/exec]
+```
+
+Runs JavaScript in the sandbox. Produces `{ type: "exec", code }`. No return value — mutate `ctx` to persist state.
+
+### Conditional
+
+```kata
+:::if{cond="hp > 50"}
+:: Hero :: I'm fine.
+:::elseif{cond="hp > 0"}
+:: Hero :: I need a potion.
+:::else
+:: Hero :: ...
+:::
+```
+
+Produces `{ type: "condition", condition, then, elseIf?, else? }`. Conditions are evaluated at **runtime**, not parse time, so they can reference live `ctx` fields.
+
+### Audio
+
+```kata
+[audio play music "forest-theme.mp3" loop]
+[audio volume music 0.5]
+[audio pause music]
+[audio stop music]
+```
+
+Forms:
+
+| Form | Action |
+|---|---|
+| `play <channel> "<src>" [loop]` | Start playback on `channel` |
+| `stop <channel>` | Stop playback on `channel` |
+| `pause <channel>` | Pause playback on `channel` |
+| `volume <channel> <value>` | Set channel volume (0..1) |
+
+Fire-and-forget — the engine emits the frame and auto-advances.
+
+### Tween
+
+```kata
+[tween target="hero" property="x" from="0" to="400" duration="800" easing="ease-in-out"]
+```
+
+See the [tweens guide](/kata/docs/guides/tweens) for the full attribute table.
+
+### Tween group
+
+```kata
+[tween-group parallel]
+[tween target="hero" property="opacity" to="1" duration="500"]
+[tween target="bg" property="blur" to="5" duration="500"]
+[/tween-group]
+```
+
+`parallel` fires every tween in one frame; `sequence` waits for each to complete.
+
+### Comments
+
+```kata
+// This whole line is stripped at parse time
+:: Narrator :: The comment above never appears in output.
+```
+
+Only line comments are supported. Trailing `// ...` on a directive line is also stripped.
+
+### Interpolation
+
+```kata
+:: Narrator :: ${player.name} has ${player.hp} HP.
+* [Spend ${cost} gold] -> @scene/purchase
+```
+
+Expressions run through the same sandbox as `[exec]`. Interpolation happens **after** locale resolution, so translated strings can still contain `${...}` placeholders.
+
+## Block-level pre-extraction
+
+Block directives — `[exec]...[/exec]`, `[tween-group]...[/tween-group]`, `<script>...</script>` — are extracted by regex **before** the markdown pipeline and re-inserted as KSON actions. If you're adding a new block directive, follow that pattern (see `packages/kata-core/src/parser/`).
+
+## Parse errors vs. runtime errors
+
+| Kind | Detected by | Examples |
+|---|---|---|
+| Parse error | `parseKata()` / `parseKataWithDiagnostics()` | Malformed frontmatter, unterminated `[exec]`, duplicate scene ids |
+| Runtime error | `KataEngine` during playback | Unknown scene target, broken `${...}` expression, sandbox timeout |
+
+Use `parseKataWithDiagnostics(source)` during authoring (and in the LSP) to surface both.

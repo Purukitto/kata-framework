@@ -1,0 +1,17 @@
+---
+id: save
+title: Save
+---
+
+<script>
+ctx.chapter = 1;
+ctx.hasKey = false;
+</script>
+
+:: Narrator :: Chapter ${chapter}.
+
+[exec]
+ctx.hasKey = true;
+[/exec]
+
+:: Narrator :: You found a key. (Saving this moment is one snapshot away.)

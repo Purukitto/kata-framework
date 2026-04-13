@@ -1,0 +1,74 @@
+---
+title: Publish your game
+description: Compile .kata sources and deploy to static hosting.
+section: start
+order: 6
+---
+
+# Publish your game
+
+Kata games are static. No server required (unless you want multiplayer). Compile your scenes with the CLI, build your UI, and drop the output on any static host.
+
+## 1. Compile `.kata` → KSON
+
+```bash
+kata build "scenes/**/*.kata" -o dist/kson
+```
+
+Each `.kata` source becomes a `.kson.json` file — the parsed action list your UI will import. In most projects you bundle these straight into your Vite/bun build, so this step is already part of `bun run build`.
+
+You can also keep a project config in `kata.config.json`:
+
+```json
+{
+  "input": "scenes/**/*.kata",
+  "output": "dist/kson"
+}
+```
+
+## 2. Build your UI
+
+Whatever bundler you're using (Vite, Bun, Next.js), run its production build:
+
+```bash
+bun run build
+```
+
+The scaffolded templates ship with a sensible default. If you're rolling your own, make sure to:
+
+- Inline or preload the `.kson.json` files
+- Set `NODE_ENV=production` so devtools compile to a no-op shell
+- Bundle your audio/image assets into the static output
+
+## 3. Deploy
+
+### Vercel / Netlify / GitHub Pages
+
+Point the host at your `dist/` (or `.output/public`, or whatever your bundler emits). Zero configuration.
+
+### Bun host
+
+```bash
+bun --bun ./dist/index.html
+```
+
+## Lint before you ship
+
+```bash
+kata graph "scenes/**/*.kata" --lint
+```
+
+This reports:
+
+- **Orphaned scenes** — unreachable from any entry point
+- **Dead ends** — scenes with no choices and no outbound edge
+- **Broken targets** — `-> @scene/id` pointing at a scene that doesn't exist
+
+Fix these before deploying and you avoid an entire class of player-reported bugs.
+
+## Next steps
+
+- [Plugins guide](/kata/docs/guides/plugins) — analytics, auto-save, content warnings, profanity filter
+- [Testing guide](/kata/docs/guides/testing) — `StoryTestRunner` lets you write behavioral tests for branching paths
+- [Multiplayer guide](/kata/docs/guides/multiplayer) — add co-op or networked rooms on top of any existing game
+- [Devtools guide](/kata/docs/guides/devtools) — in-browser timeline, profiler, and inspector

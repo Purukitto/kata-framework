@@ -1,0 +1,88 @@
+---
+title: CLI reference
+description: The kata command — build, watch, graph.
+section: reference
+order: 3
+---
+
+# CLI reference
+
+`@kata-framework/cli` ships a `kata` binary with three commands.
+
+```bash
+bun add -d @kata-framework/cli
+bunx kata --help
+```
+
+## `kata build <glob>`
+
+Parse `.kata` files and write compiled `.kson.json` to an output directory.
+
+```bash
+kata build "scenes/**/*.kata" --out dist/kson
+```
+
+| Flag | Default | Purpose |
+|---|---|---|
+| `--out <dir>` | `dist/kson` | Output directory |
+| `--config <path>` | `kata.config.json` | Config file path |
+| `--pretty` | off | Pretty-print JSON output |
+
+Output layout preserves source directory structure. `scenes/intro/prologue.kata` → `dist/kson/scenes/intro/prologue.kson.json`.
+
+## `kata watch <glob>`
+
+Same as `build`, but re-runs on file change. Useful in development alongside your UI dev server.
+
+```bash
+kata watch "scenes/**/*.kata"
+```
+
+## `kata graph <glob>`
+
+Visualize scene connectivity. Two output formats, one analysis flag.
+
+```bash
+kata graph "scenes/**/*.kata" --format dot > graph.dot
+kata graph "scenes/**/*.kata" --format json
+kata graph "scenes/**/*.kata" --lint
+```
+
+| Flag | Values | Purpose |
+|---|---|---|
+| `--format` | `dot` \| `json` | Output format (default `dot`) |
+| `--lint` | — | Fail if there are orphan scenes or dead-end choices |
+| `--root <id>` | — | Start reachability analysis from this scene id |
+
+`--lint` exits non-zero on problems, so you can gate CI on it:
+
+```yaml
+- run: bunx kata graph "scenes/**/*.kata" --lint
+```
+
+`dot` output pipes into Graphviz:
+
+```bash
+kata graph "scenes/**/*.kata" --format dot | dot -Tsvg > scenes.svg
+```
+
+## `kata.config.json`
+
+Resolved from CWD. CLI flags take precedence.
+
+```json
+{
+  "glob": "scenes/**/*.kata",
+  "out": "dist/kson",
+  "pretty": false,
+  "root": "intro"
+}
+```
+
+## Exit codes
+
+| Code | Meaning |
+|---|---|
+| `0` | Success |
+| `1` | Parse error or lint failure |
+| `2` | Config error |

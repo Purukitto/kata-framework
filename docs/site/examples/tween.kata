@@ -1,0 +1,10 @@
+---
+id: tween
+title: Tween
+---
+
+:: Narrator :: The stranger approaches.
+
+[tween target="stranger" property="x" from="100" to="400" duration="800" easing="ease-in-out"]
+
+:: Stranger :: We need to talk.

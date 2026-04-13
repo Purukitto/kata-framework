@@ -1,0 +1,95 @@
+---
+title: Localization
+description: Ship one scene in multiple languages without duplicating structure.
+section: guides
+order: 7
+---
+
+# Localization
+
+Kata localizes content, not structure. You author a scene once; locales provide **overrides** for `speaker` and `content` on specific action indexes. Logic, conditions, assets, and flow stay the same across every language.
+
+## Register overrides at runtime
+
+```ts
+engine.registerLocale("intro", "ja", [
+  { index: 0, content: "森へようこそ、${player.name}。" },
+  { index: 2, speaker: "商人", content: "おお、裕福な旅人！" },
+]);
+
+engine.setLocale("ja");
+engine.setLocaleFallback("en"); // used when a key is missing
+```
+
+Only the fields you provide get overridden. Missing fields fall back to the base scene, then to the fallback locale.
+
+## Load overrides from YAML
+
+```yaml
+# scenes/intro.kata.ja.yml
+locale: ja
+overrides:
+  - index: 0
+    content: "森へようこそ、${player.name}。"
+  - index: 2
+    speaker: "商人"
+    content: "おお、裕福な旅人！"
+```
+
+```ts
+import { parseLocaleYaml } from "@kata-framework/core";
+
+const yml = await fs.readFile("scenes/intro.kata.ja.yml", "utf8");
+const { locale, overrides } = parseLocaleYaml(yml);
+engine.registerLocale("intro", locale, overrides);
+```
+
+## Load overrides from a VFS
+
+Combine localization with the [modding](/kata/docs/guides/modding) layered VFS, and mods can ship translations the same way they ship scenes:
+
+```ts
+const vfs = new LayeredVFS();
+vfs.addLayer("base", baseProvider);
+vfs.addLayer("fan-ja", japaneseModProvider);
+
+for (const sceneId of sceneIds) {
+  const yml = await vfs.readFile(`scenes/${sceneId}.kata.ja.yml`).catch(() => null);
+  if (yml) {
+    const { locale, overrides } = parseLocaleYaml(yml);
+    engine.registerLocale(sceneId, locale, overrides);
+  }
+}
+```
+
+## Interpolation still runs after localization
+
+```kata
+:: Narrator :: Welcome, ${player.name}.
+```
+
+```yaml
+- index: 0
+  content: "森へようこそ、${player.name}。"
+```
+
+The override preserves `${...}` placeholders. Interpolation happens after locale resolution, so variables always show in the active language's template.
+
+## Snapshot and restore
+
+The active locale and fallback are part of the snapshot. Save and load preserve them:
+
+```ts
+const snapshot = engine.getSnapshot(); // includes `locale` and `localeFallback`
+engine.loadSnapshot(snapshot);          // restores exactly where the player left off
+```
+
+## Fallback chain
+
+On each frame, the engine resolves content in this order:
+
+1. Override for `currentLocale` at `actionIndex`
+2. Override for `fallbackLocale` at `actionIndex`
+3. Base scene value
+
+No override = the base text is shown. This means you can ship a partial translation and the player sees a mix of languages where coverage is incomplete — rather than empty strings.

@@ -1,0 +1,149 @@
+---
+title: Plugins
+description: Hook into the engine lifecycle to add analytics, filters, auto-save, and more.
+section: guides
+order: 1
+---
+
+# Plugins
+
+Kata's plugin system lets you extend the engine with lifecycle hooks — logging, analytics, content filtering, auto-saving, content warnings — without modifying engine internals.
+
+## The smallest plugin
+
+```ts
+import { KataEngine, type KataPlugin } from "@kata-framework/core";
+
+const logger: KataPlugin = {
+  name: "logger",
+  beforeAction(action, ctx) {
+    console.log(`[${action.type}]`, action);
+    return action;
+  },
+};
+
+const engine = new KataEngine();
+engine.use(logger);
+```
+
+Register with `engine.use()`. The engine calls your hooks at the right moments.
+
+## Lifecycle hooks
+
+```ts
+interface KataPlugin {
+  name: string;
+  init?(engine: KataEngine): void;
+  beforeAction?(action: KSONAction, ctx: Record<string, any>): KSONAction | null;
+  afterAction?(action: KSONAction, ctx: Record<string, any>): void;
+  onChoice?(choice: Choice, ctx: Record<string, any>): void;
+  beforeSceneChange?(fromId: string | null, toId: string, ctx: Record<string, any>): void;
+  onEnd?(sceneId: string): void;
+}
+```
+
+| Hook | When | Return value |
+|---|---|---|
+| `init` | Once, on `engine.use()` | — |
+| `beforeAction` | Before each frame emits | modified action, or `null` to skip |
+| `afterAction` | After each frame emits | — |
+| `onChoice` | Player picks a choice, before target resolves | — |
+| `beforeSceneChange` | Before scene transition (`fromId` is `null` on first start) | — |
+| `onEnd` | Scene reaches its last action | — |
+
+Hooks are optional. Implement only what you need.
+
+## Execution order
+
+Plugins execute in registration order. `beforeAction` forms a pipeline — each plugin receives the previous one's output. If any returns `null`, the chain stops and the frame is skipped.
+
+## Closure pattern
+
+All official plugins follow this shape — state lives in the factory closure:
+
+```ts
+export function myPlugin(config: MyConfig): MyPlugin {
+  const data: string[] = [];
+
+  return {
+    name: "my-plugin",
+    afterAction(action) {
+      data.push(action.type);
+    },
+    getData() { return [...data]; },
+    reset() { data.length = 0; },
+  };
+}
+```
+
+Extend the `KataPlugin` interface to expose typed custom methods:
+
+```ts
+export interface MyPlugin extends KataPlugin {
+  getData(): string[];
+  reset(): void;
+}
+
+const plugin = engine.getPlugin<MyPlugin>("my-plugin");
+plugin?.getData();
+```
+
+## Testing plugins
+
+Use `@kata-framework/test-utils` for declarative tests:
+
+```ts
+import { createTestEngine } from "@kata-framework/test-utils";
+import { myPlugin } from "./my-plugin";
+
+test("plugin tracks actions", () => {
+  const plugin = myPlugin();
+  const { engine } = createTestEngine(`
+---
+id: test
+---
+:: A :: Hello
+:: B :: World
+`);
+  engine.use(plugin);
+  engine.start("test");
+  engine.next();
+
+  expect(plugin.getData()).toHaveLength(2);
+});
+```
+
+## Publishing a plugin
+
+Third-party plugins use the `kata-plugin-` prefix and list `@kata-framework/core` as a peer dependency. Scaffold a new one in seconds:
+
+```bash
+bun create kata-plugin my-feature
+cd kata-plugin-my-feature
+bun install
+bun test
+```
+
+See the [plugin catalog](/kata/docs/guides/plugins-catalog) for official plugins and submission guidelines.
+
+## Subpath exports
+
+Official plugins ship as tree-shakeable subpath imports:
+
+```ts
+import { KataEngine } from "@kata-framework/core";
+import { analyticsPlugin } from "@kata-framework/core/plugins/analytics";
+import { profanityPlugin } from "@kata-framework/core/plugins/profanity";
+import { autoSavePlugin } from "@kata-framework/core/plugins/auto-save";
+import { loggerPlugin } from "@kata-framework/core/plugins/logger";
+import { contentWarningsPlugin } from "@kata-framework/core/plugins/content-warnings";
+```
+
+Importing the core engine alone includes **zero** plugin code.
+
+## Notes
+
+- Audio actions don't trigger `beforeAction`/`afterAction` — they fire the `"audio"` event directly.
+- Tween actions fire hooks, then auto-advance.
+- Plugin hooks fire normally during `engine.back()`, so filters still apply to rewound frames.
+- When no plugins are registered, hook dispatch is completely skipped — zero overhead.

@@ -1,0 +1,16 @@
+---
+id: variables
+title: Variables
+---
+
+<script>
+ctx.player = { name: "Ada", gold: 80 };
+</script>
+
+:: Narrator :: Hello, ${player.name}. You have ${player.gold} gold.
+
+:::if{cond="player.gold >= 50"}
+:: Merchant :: A wealthy traveler! Browse my wares?
+:::else
+:: Merchant :: Come back when your purse is heavier.
+:::

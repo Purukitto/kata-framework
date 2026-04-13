@@ -1,0 +1,84 @@
+---
+title: Devtools
+description: In-browser timeline, profiler, inspector, and event log.
+section: guides
+order: 5
+---
+
+# Devtools
+
+`@kata-framework/devtools` ships a developer plugin with full timeline tracking, per-plugin profiling, and a React overlay. Zero overhead in production — `NODE_ENV=production` returns a no-op shell.
+
+## Install
+
+```bash
+bun add @kata-framework/devtools
+```
+
+## Wire it up
+
+```tsx
+import { devtoolsPlugin } from "@kata-framework/devtools";
+import { KataDevtools } from "@kata-framework/devtools/react";
+
+const devtools = devtoolsPlugin();
+engine.use(devtools);
+
+function App() {
+  return (
+    <>
+      <YourGameUI />
+      <KataDevtools plugin={devtools} position="bottom-right" />
+    </>
+  );
+}
+```
+
+The plugin tracks every emitted frame, ctx snapshot, plugin hook timing, and engine event. The overlay is a small floating panel with five tabs.
+
+## The five tabs
+
+| Tab | What you see |
+|---|---|
+| **Inspector** | Current scene id, action index, ctx snapshot, registered plugins |
+| **Timeline** | Every frame in order. Click an entry to expand the full KSON frame, ctx diff, and elapsed ms |
+| **Profiler** | Per-plugin hook timing (call count / average / max), slowest plugin, frame emission latency stats |
+| **Console** | Read-only ctx expression eval — type `hp > 50` and see the live result |
+| **Events** | Chronological `update` / `end` / `audio` / `error` log |
+
+## Plugins added later are still tracked
+
+The devtools plugin wraps every other plugin's hook methods at `init` time and also intercepts `engine.use()` / `engine.removePlugin()` so plugins registered after devtools are still profiled. You don't need to register in any special order.
+
+## Headless usage
+
+Every overlay tab has a programmatic API:
+
+```ts
+const devtools = devtoolsPlugin();
+engine.use(devtools);
+
+// Run your scenario
+
+devtools.getInspectorState();   // { sceneId, actionIndex, ctx, plugins }
+devtools.getTimeline();         // TimelineEntry[]
+devtools.getTimelineEntry(3);   // full detail for entry 3
+devtools.getProfilerReport();   // hook timings, slowest plugin, frame latency
+devtools.getEventLog();         // chronological events
+devtools.evalExpression("hp > 50"); // runs inside the sandbox
+devtools.reset();
+```
+
+Useful for CI regression tests — assert that no plugin exceeds a hook-time budget, or that the expected sequence of scenes appears in the timeline.
+
+## Production gating
+
+```ts
+// Default: NODE_ENV === "production" returns a no-op plugin
+const devtools = devtoolsPlugin();
+
+// Force enable in production (for a debug build)
+const devtools = devtoolsPlugin({ enabled: true });
+```
+
+The no-op shell has the same public interface but records nothing, so your wiring code compiles and runs everywhere.

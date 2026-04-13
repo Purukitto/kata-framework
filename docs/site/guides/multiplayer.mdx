@@ -1,0 +1,201 @@
+---
+title: Multiplayer
+description: Shared narrative experiences — from two browser tabs to networked rooms.
+section: guides
+order: 3
+---
+
+# Multiplayer
+
+`@kata-framework/sync` wraps `KataEngine` with a host-authoritative model so multiple players can share a story. The engine itself doesn't change — multiplayer is a wrapper layer.
+
+## Pick your transport
+
+| Transport | Use when | Infra |
+|---|---|---|
+| `MockTransport` | Unit tests | None |
+| `BroadcastChannelTransport` | Same-device co-op (two tabs, split-screen) | None |
+| `WebSocketTransport` | Networked rooms across devices | Requires `KataServer` |
+
+## Two-tab co-op
+
+```ts
+import { KataEngine } from "@kata-framework/core";
+import { KataSyncManager, BroadcastChannelTransport } from "@kata-framework/sync";
+
+const engine = new KataEngine();
+engine.registerScene(myScene);
+
+const transport = new BroadcastChannelTransport();
+const sync = new KataSyncManager(engine, transport);
+
+sync.on("frame", (frame) => {
+  // Render the frame — same on authority and followers
+});
+
+await sync.connect("my-room", { playerId: "player-1" });
+sync.start("intro"); // First to connect becomes authority automatically
+```
+
+Open the page in two tabs, both connect to the same `roomId`, and the second tab's frames mirror the first.
+
+## Networked rooms
+
+### Server (Bun)
+
+```ts
+import { KataServer } from "@kata-framework/sync/server";
+
+const server = new KataServer({ port: 3000 });
+server.start();
+
+server.on("room-created", (roomId) => console.log(`Room: ${roomId}`));
+server.on("player-joined", (roomId, playerId) => console.log(`${playerId} joined ${roomId}`));
+```
+
+Each `Room` gets its own `KataEngine` instance. The server ships as a subpath import so you can run it without pulling DOM types into your client bundle.
+
+### Client
+
+```ts
+import { WebSocketTransport, KataSyncManager } from "@kata-framework/sync";
+import { KataEngine } from "@kata-framework/core";
+
+const engine = new KataEngine();
+const transport = new WebSocketTransport("ws://localhost:3000", {
+  playerId: "player-1",
+  scenes: [myScene],
+});
+const sync = new KataSyncManager(engine, transport);
+
+await sync.connect("my-room");
+```
+
+### Deploying the server
+
+- **Bun host** — `bun --bun ./server.ts` anywhere with a public port.
+- **Fly.io / Railway / Render** — any platform that supports long-lived WebSocket connections works. Avoid serverless function platforms; rooms are stateful.
+- **Reverse proxy** — Nginx / Caddy with `proxy_read_timeout` set high. WebSockets are long-lived.
+- **CORS** — `KataServer` accepts an `origin` option. Set it to your game's domain, not `*`.
+
+## Choice policies
+
+Multiple players can't all pick different choices simultaneously. The policy decides who wins.
+
+```ts
+sync.setChoicePolicy({ type: "first-writer" });
+sync.setChoicePolicy({ type: "designated", playerId: "dm" });
+sync.setChoicePolicy({
+  type: "vote",
+  timeout: 10_000,
+  resolver: (votes) => majorityWinner(votes),
+});
+```
+
+| Policy | When to use |
+|---|---|
+| `first-writer` | Fast co-op — "first click wins" |
+| `designated` | DM / host mode — one player decides |
+| `vote` | Democratic storytelling — majority wins within a timeout |
+
+## Player presence
+
+```ts
+sync.on("player-joined", (info) => console.log(`${info.id} joined`));
+sync.on("player-left", (info) => console.log(`${info.id} left`));
+sync.getPlayers(); // [{ id, connected, role, joinedAt }]
+```
+
+Use this to build a lobby UI, show who's online, or gate features behind a minimum player count.
+
+## State partitioning
+
+For branching stories where players explore independently, then reconverge:
+
+```ts
+import { StatePartition } from "@kata-framework/sync";
+
+const partition = new StatePartition();
+partition.setMode("branching");
+partition.setPlayerSnapshot("p1", snapshot);
+partition.getPlayerPosition("p1"); // { sceneId, actionIndex }
+partition.getSharedCtx();          // Shared state visible to all
+partition.getPlayerCtx("p1");      // Player-isolated state
+```
+
+Sync points let branches reconverge. The engine pauses until every player arrives:
+
+```ts
+partition.registerSyncPoint("forest", "boss-fight");
+partition.arriveAtSyncPoint("boss-fight", "p1", totalPlayers);
+```
+
+Declare sync points in scene frontmatter:
+
+```yaml
+multiplayer:
+  mode: branching
+  choicePolicy: per-player
+  syncPoint: @boss/fight
+```
+
+## Authority migration
+
+If the authority disconnects, the oldest remaining peer inherits automatically. The new authority:
+
+1. Rebuilds engine state from its latest received frame.
+2. Broadcasts an `authority-changed` event.
+3. Resumes processing intents from followers.
+
+Listen for migration to update the UI:
+
+```ts
+sync.on("authority-changed", ({ newAuthorityId }) => {
+  setHostLabel(newAuthorityId);
+});
+```
+
+## React hook
+
+```tsx
+import { useKataMultiplayer, KataMultiplayerProvider } from "@kata-framework/react";
+
+function Game({ syncManager }) {
+  const { frame, state, players, isAuthority, connectionState, actions } =
+    useKataMultiplayer(syncManager);
+
+  if (connectionState !== "connected") return <div>Connecting…</div>;
+
+  return (
+    <div>
+      <PlayerList players={players} authorityId={isAuthority ? "me" : undefined} />
+      {frame && <Scene frame={frame} onNext={actions.next} onChoice={actions.makeChoice} />}
+    </div>
+  );
+}
+```
+
+## Troubleshooting
+
+### "Followers see stale frames"
+
+Followers are event-driven — if your UI caches by reference, updates can be missed. Use `useSyncExternalStore` (the hook already does this) or key renders by `frame.state.currentActionIndex`.
+
+### "WebSocket disconnects after 60s on Cloudflare / Heroku"
+
+Platform idle timeouts. Either:
+
+- Send a keepalive ping from the client every 30s.
+- Switch to a host without WebSocket timeouts (Fly.io, Railway, bare VPS).
+
+### "State diverges between authority and follower"
+
+All mutations must go through `syncManager.next()` / `makeChoice()`. If your UI mutates `ctx` directly on a follower, that mutation never reaches the authority and divergence is inevitable. Treat followers as read-only renderers.
+
+### "Authority migration picks the wrong player"
+
+Migration uses join time. If you need custom priority (e.g., "the DM is always authority unless they leave"), implement a `designated` choice policy and a custom migration handler — see the `@kata-framework/sync` source for `AuthorityTracker`.
+
+### CORS errors in production
+
+`KataServer` defaults to `origin: "*"` which most browsers reject for authenticated WebSockets. Set `origin: "https://your-game.com"` explicitly.

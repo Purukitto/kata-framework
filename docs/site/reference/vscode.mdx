@@ -1,0 +1,63 @@
+---
+title: VS Code extension
+description: Syntax highlighting, LSP, and scene graph visualization for .kata files.
+section: reference
+order: 4
+---
+
+# VS Code extension
+
+Install **Kata** from the VS Code Marketplace (publisher: `purukitto`, extension id: `kata-vscode`).
+
+```
+ext install purukitto.kata-vscode
+```
+
+## Features
+
+| Feature | Powered by |
+|---|---|
+| Syntax highlighting | TextMate grammar (`.kata` files) |
+| Diagnostics | `@kata-framework/lsp` — undefined vars, unreachable targets, duplicate ids, invalid conditions |
+| Autocomplete | LSP — scene ids, variable names, asset keys |
+| Hover | LSP — variable info, asset URLs, scene target info |
+| Go-to-definition | `F12` on `@scene/id` jumps to the definition |
+| Document symbols | `Ctrl+Shift+O` — outline with scenes, speakers, choice labels |
+| Scene graph | Command palette → **Kata: Show Scene Graph** — force-directed webview |
+
+## Scene graph command
+
+Open any `.kata` file in a workspace, then run **Kata: Show Scene Graph**. The extension:
+
+1. Scans all `.kata` files in the workspace
+2. Builds the connectivity graph via `@kata-framework/core`'s `SceneGraph`
+3. Opens a webview with a force-directed view — nodes are scenes, edges are choice targets
+4. Highlights orphans and dead ends in red
+
+Click a node to jump to that scene in the editor.
+
+## Settings
+
+```jsonc
+{
+  // Enable/disable the language server
+  "kata.lsp.enable": true,
+
+  // Additional globs to index
+  "kata.workspace.include": ["scenes/**/*.kata"],
+
+  // Globs to exclude from analysis
+  "kata.workspace.exclude": ["**/node_modules/**", "**/dist/**"],
+
+  // Trace server communication (off | messages | verbose)
+  "kata.trace.server": "off"
+}
+```
+
+## Troubleshooting
+
+**LSP not starting?** Check the **Output → Kata Language Server** panel. Most common cause is a broken `.kata` file in the workspace with a parse error at the top level.
+
+**Go-to-definition not working?** The LSP only indexes files matching `kata.workspace.include`. If your scenes live elsewhere, add the glob.
+
+**Scene graph empty?** The webview uses the same workspace index — verify the LSP is running and a scene is currently open.

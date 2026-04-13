@@ -1,0 +1,87 @@
+---
+title: Save & load
+description: Snapshot the engine state and restore it later.
+section: start
+order: 5
+playground:
+  scene: save
+---
+
+# Save & load
+
+The engine serializes everything needed to resume a playthrough — `ctx`, current scene, action index, locale, undo stack — into a single JSON object. Save it anywhere; restore with one call.
+
+## The headless way
+
+```ts
+// Save
+const snapshot = engine.getSnapshot();
+localStorage.setItem("save", JSON.stringify(snapshot));
+
+// Load
+const raw = JSON.parse(localStorage.getItem("save")!);
+engine.loadSnapshot(raw); // Zod-validated + auto-migrated
+```
+
+Snapshots are **versioned**. When you change scene shape or add new state fields, register a migration:
+
+```ts
+engine.registerMigration(2, (data) => ({
+  ...data,
+  ctx: { ...data.ctx, reputation: 0 }, // default for new field
+  schemaVersion: 3,
+}));
+```
+
+Old saves flow through the migration pipeline transparently on load.
+
+## The React way
+
+The `SaveManager` + `useSaveSlots` hook wraps snapshots in a slot UI:
+
+```tsx
+import { SaveManager, useSaveSlots } from "@kata-framework/react";
+
+const saveManager = new SaveManager({
+  storage: localStorage,          // any StorageAdapter (localStorage, IndexedDB, custom)
+  namespace: "my-game",
+  slotCount: 5,
+});
+
+function SaveMenu() {
+  const { slots, save, load, clear } = useSaveSlots(saveManager);
+  return (
+    <ul>
+      {slots.map((slot, i) => (
+        <li key={i}>
+          {slot ? `${slot.sceneId} — ${new Date(slot.timestamp).toLocaleString()}` : "Empty"}
+          <button onClick={() => save(i)}>Save</button>
+          <button onClick={() => load(i)} disabled={!slot}>Load</button>
+          <button onClick={() => clear(i)} disabled={!slot}>Clear</button>
+        </li>
+      ))}
+    </ul>
+  );
+}
+```
+
+Swap the `StorageAdapter` to move saves into IndexedDB, a server, or a cloud sync layer.
+
+## Try it live
+
+<Playground scene="save" />
+
+## Rewind
+
+For quick "whoops, go back one line" behavior, use the built-in undo stack instead of a save slot:
+
+```ts
+const engine = new KataEngine(initialCtx, { historyDepth: 100 });
+engine.next();
+engine.next();
+engine.back(); // restores ctx, scene, action index
+```
+
+The undo stack is included in snapshots, so rewind capability survives save/load.
+
+> **Next:** [Publish your game →](/kata/docs/start/publish)

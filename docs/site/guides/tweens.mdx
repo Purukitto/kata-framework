@@ -1,0 +1,89 @@
+---
+title: Tweens & animation
+description: Choreograph visuals alongside narrative — fire-and-forget.
+section: guides
+order: 9
+---
+
+# Tweens & animation
+
+Tweens let you drive visual animation from the `.kata` timeline. The engine emits the tween frame; your UI plays the actual animation with whatever library you prefer (Framer Motion, GSAP, CSS transitions, WebGL).
+
+Tweens are **fire-and-forget**: the engine advances immediately after emitting a tween frame, so animations never block dialogue.
+
+## Single tween
+
+```kata
+[tween target="stranger" property="x" from="100" to="400" duration="800" easing="ease-in-out"]
+```
+
+| Attribute | Required | Notes |
+|---|---|---|
+| `target` | ✓ | Id your UI uses to locate the element |
+| `property` | ✓ | `x`, `y`, `opacity`, `scale`, anything your renderer understands |
+| `to` | ✓ | Final value |
+| `from` | — | Start value. Defaults to the current value on the UI side |
+| `duration` | ✓ | Milliseconds |
+| `easing` | — | Name string passed through to the UI (`ease-in-out`, `linear`, etc.) |
+
+## Groups
+
+Run tweens in parallel or sequence:
+
+```kata
+[tween-group parallel]
+[tween target="stranger" property="opacity" to="1" duration="500"]
+[tween target="bg" property="blur" to="5" duration="500"]
+[/tween-group]
+
+[tween-group sequence]
+[tween target="door" property="rotation" to="90" duration="300"]
+[tween target="player" property="x" to="100" duration="400"]
+[/tween-group]
+```
+
+`parallel` emits all tweens in one frame; `sequence` emits them one after another with the engine waiting for each to report completion on the UI side.
+
+## React rendering
+
+`@kata-framework/react` ships a tween layer you can wrap around anything:
+
+```tsx
+import { TweenProvider, TweenTarget, useTween } from "@kata-framework/react";
+
+<TweenProvider>
+  <TweenTarget id="stranger" initial={{ x: 100, opacity: 0 }}>
+    {(style) => (
+      <img
+        src="/stranger.png"
+        style={{
+          transform: `translateX(${style.x}px)`,
+          opacity: style.opacity,
+          transition: "transform 0.8s ease-in-out, opacity 0.5s",
+        }}
+      />
+    )}
+  </TweenTarget>
+</TweenProvider>
+```
+
+`TweenProvider` subscribes to the engine and dispatches tween updates by target id. `TweenTarget` re-renders with the latest style. Use `useTween("id")` if you want raw access inside a custom component.
+
+## Integration with third-party libraries
+
+`TweenTarget` is just a subscription — nothing stops you from feeding tween updates into Framer Motion's `animate()` or GSAP's timeline instead of CSS:
+
+```tsx
+import { useTween } from "@kata-framework/react";
+import { motion, useAnimationControls } from "framer-motion";
+
+function Stranger() {
+  const controls = useAnimationControls();
+  useTween("stranger", (style) => controls.start(style));
+  return <motion.img src="/stranger.png" animate={controls} />;
+}
+```
+
+## Reduced motion
+
+Respect the user's system preference — see the [accessibility guide](/kata/docs/guides/accessibility#usereducedmotion). When `prefers-reduced-motion: reduce` is active, skip the transition and apply the final value instantly.

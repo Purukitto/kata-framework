@@ -1,0 +1,48 @@
+---
+title: Install
+description: Get a running Kata project in 60 seconds.
+section: start
+order: 1
+---
+
+# Install
+
+One command, one running story. Under a minute.
+
+## Prerequisites
+
+- [Bun](https://bun.sh) 1.1+. Kata is built on Bun end-to-end.
+- Any editor. The [VS Code extension](/kata/docs/reference/vscode) adds syntax highlighting and a language server if you want one.
+
+## Scaffold a project
+
+```bash
+bun create kata-story my-game
+cd my-game
+bun install
+bun dev
+```
+
+That's it. The `minimal` template opens a tiny React app that plays a sample scene.
+
+### Other templates
+
+```bash
+bun create kata-story my-game --template minimal       # headless + tiny runner
+bun create kata-story my-game --template react         # React UI, save slots, typewriter
+bun create kata-story my-game --template multiplayer   # React UI + @kata-framework/sync
+```
+
+## Install manually into an existing app
+
+```bash
+bun add @kata-framework/core            # required — the engine
+bun add @kata-framework/react           # optional — React bindings
+bun add -d @kata-framework/cli          # optional — kata build / graph
+```
+
+## What you should see
+
+When you open the scaffolded app in a browser, the first scene appears, a **Next** button advances it, and choice frames render as buttons. If you edit `src/scenes/intro.kata`, the dev server hot-reloads the parsed KSON.
+
+> **Next:** [Your first scene →](/kata/docs/start/first-scene)
