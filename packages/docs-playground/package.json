@@ -1,0 +1,37 @@
+{
+  "name": "@kata-framework/docs-playground",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Embeddable .kata playground widget for the Kata documentation site. Internal package — not published to npm.",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "test": "bun test"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/react": "^19.2.13",
+    "@types/react-dom": "^19.2.3",
+    "happy-dom": "^15.11.6",
+    "tsup": "^8.5.1",
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@kata-framework/core": "workspace:*",
+    "@kata-framework/react": "workspace:*",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4"
+  }
+}
