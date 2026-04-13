@@ -1,0 +1,23 @@
+{
+  "$schema": "https://typedoc.org/schema.json",
+  "entryPointStrategy": "expand",
+  "entryPoints": [
+    "packages/kata-core/index.ts",
+    "packages/kata-react/index.ts",
+    "packages/kata-sync/index.ts",
+    "packages/kata-cli/src/index.ts",
+    "packages/kata-lsp/index.ts",
+    "packages/kata-test-utils/index.ts",
+    "packages/kata-devtools/index.ts"
+  ],
+  "plugin": ["typedoc-plugin-markdown", "typedoc-plugin-frontmatter"],
+  "out": "docs-generated/api",
+  "readme": "none",
+  "githubPages": false,
+  "hideBreadcrumbs": true,
+  "useCodeBlocks": true,
+  "skipErrorChecking": true,
+  "excludePrivate": true,
+  "excludeInternal": true,
+  "exclude": ["**/tests/**", "**/*.test.*", "**/node_modules/**", "**/dist/**"]
+}

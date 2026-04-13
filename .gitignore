@@ -35,3 +35,6 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 
 # Claude Code local settings
 .claude
+
+# Generated API docs (synced into purukitto-web by scripts/sync-docs-to-web.ts)
+docs-generated
