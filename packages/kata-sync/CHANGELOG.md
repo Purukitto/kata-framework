@@ -1,5 +1,16 @@
 # @kata-framework/sync
 
+## 1.0.0
+
+### Major Changes
+
+- ff1d22d: Stable v1.0.0 release. `KataSyncManager`, `KataSyncTransport`, the built-in BroadcastChannel and WebSocket transports, authority tracking, choice policies, state partitioning, and the `KataServer` / `Room` server subpath are now frozen. Future breaking changes require a new major version.
+
+### Patch Changes
+
+- Updated dependencies [ff1d22d]
+  - @kata-framework/core@1.0.0
+
 ## 0.2.2
 
 ### Patch Changes

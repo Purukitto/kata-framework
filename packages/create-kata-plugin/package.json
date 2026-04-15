@@ -1,6 +1,6 @@
 {
   "name": "create-kata-plugin",
-  "version": "0.2.1",
+  "version": "1.0.0",
   "type": "module",
   "bin": {
     "create-kata-plugin": "dist/index.js"

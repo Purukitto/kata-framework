@@ -1,5 +1,16 @@
 # @kata-framework/test-utils
 
+## 1.0.0
+
+### Major Changes
+
+- ff1d22d: Stable v1.0.0 release. `createTestEngine`, `collectFrames`, `assertFrame`, `mockAudioManager`, and `StoryTestRunner` are now frozen. Future breaking changes require a new major version.
+
+### Patch Changes
+
+- Updated dependencies [ff1d22d]
+  - @kata-framework/core@1.0.0
+
 ## 0.3.0
 
 ### Minor Changes

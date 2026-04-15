@@ -2,7 +2,7 @@
   "name": "kata-vscode",
   "displayName": "Kata Framework",
   "description": "Syntax highlighting, language server, and scene graph visualization for .kata narrative files",
-  "version": "0.2.6",
+  "version": "0.2.7",
   "publisher": "purukitto",
   "private": true,
   "license": "MIT",

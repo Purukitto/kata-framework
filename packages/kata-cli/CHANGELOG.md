@@ -1,5 +1,16 @@
 # @kata-framework/cli
 
+## 1.0.0
+
+### Major Changes
+
+- ff1d22d: Stable v1.0.0 release. The `kata` CLI's commands (`build`, `watch`, `graph`), flags, and `kata.config.json` schema are now frozen under semver. Future breaking changes require a new major version.
+
+### Patch Changes
+
+- Updated dependencies [ff1d22d]
+  - @kata-framework/core@1.0.0
+
 ## 0.1.3
 
 ### Patch Changes

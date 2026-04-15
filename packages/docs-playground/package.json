@@ -1,6 +1,6 @@
 {
   "name": "@kata-framework/docs-playground",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "private": true,
   "description": "Embeddable .kata playground widget for the Kata documentation site. Internal package — not published to npm.",
   "main": "./dist/index.js",

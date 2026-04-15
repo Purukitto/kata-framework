@@ -1,5 +1,14 @@
 # kata-vscode
 
+## 0.2.7
+
+### Patch Changes
+
+- Updated dependencies [ff1d22d]
+- Updated dependencies [ff1d22d]
+  - @kata-framework/core@1.0.0
+  - @kata-framework/lsp@1.0.0
+
 ## 0.2.6
 
 ### Patch Changes

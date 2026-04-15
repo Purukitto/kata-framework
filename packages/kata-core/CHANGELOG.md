@@ -1,5 +1,11 @@
 # @kata-framework/core
 
+## 1.0.0
+
+### Major Changes
+
+- ff1d22d: Stable v1.0.0 release. Public API is now frozen — parser, runtime, plugins, store, evaluator, snapshots, VFS, assets, scene graph, i18n, a11y, and the KSON type contract are all considered stable. Future breaking changes require a new major version.
+
 ## 0.8.0
 
 ### Minor Changes
