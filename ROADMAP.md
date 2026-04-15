@@ -12,7 +12,7 @@
 > 6. **This roadmap is updated** — check off completed items, update current version
 > 7. **`CLAUDE.md` is updated** — add new packages to the build table, the architecture section, the testing table, and any relevant patterns so future Claude sessions have full context for the new surface area
 
-Current version: `0.10.0` — Parser, runtime, store, audio, save/load, modding (VFS + scene merge), asset preloading, React bindings, CLI, VS Code syntax highlighting, plugin system, undo/rewind, error diagnostics, test utilities, LSP (diagnostics, autocomplete, hover, go-to-def, symbols), scene graph visualization (CLI + VS Code), syntax extensions (`[wait]`, `[exec]`, `:::else`/`:::elseif`, comments, `[audio]`), localization (i18n), branching analytics plugin, accessibility (a11y hints + React ARIA/keyboard hooks), animation/tween timelines, plugin ecosystem (subpath exports, profanity filter, auto-save, debug logger, content warnings, validation utility, plugin scaffolder, authoring guide), multiplayer (sync protocol, BroadcastChannel + WebSocket transports, host-authoritative rooms, choice policies, player presence, state partitioning, React hook), Web Audio (`WebAudioManager` with channels, crossfading, autoplay policy), asset pipeline (`AssetPipeline` with LRU cache, concurrent loading, progress tracking), `.kata` audio syntax (`[audio play/stop/pause/volume]`), production React layer (`TypewriterText`, `SceneTransition`, `TweenTarget`/`useTween`, `SaveManager`/`useSaveSlots`), runtime resilience (graceful scene resolution, evaluation sandbox hardening, React error boundary), **developer experience (`@kata-framework/devtools` plugin + React overlay with inspector/timeline/profiler/console/events panels, behavioral `StoryTestRunner` test harness)**.
+Current version: `1.0.0` — Every feature from phases 1–9, plus **documentation site (`docs/site/` authored in-repo, TypeDoc-generated API reference, `@kata-framework/docs-playground` lazy-loaded interactive playground, Pagefind search, sync script to `purukitto-web`)**. All 9 published packages at `v1.0.0` (kata-react at `v1.3.0` — minor bump from the already-published `1.2.0` on npm, not a breaking change). Public API is now frozen; future breaking changes require a major version bump.
 
 ---
 
@@ -818,14 +818,16 @@ The framework is production-ready. Now make it learnable. A documentation site h
 
 ### Phase 10 Release Checklist
 
-- [ ] Getting Started guide published on purukitto-web
-- [ ] API reference generated and published
-- [ ] Interactive playground deployed
-- [ ] Multiplayer guide published
-- [ ] Plugin authoring guide migrated to docs site
-- [ ] Root README links to docs site
-- [ ] `CLAUDE.md` updated with new architecture, build, and testing entries
-- [ ] Version `1.0.0` — stable API surface commitment
+- [x] Getting Started guide published on purukitto-web (6 numbered pages, `/kata/docs/start/*`)
+- [x] API reference generated and published (TypeDoc → markdown → synced, `/kata/docs/api/*`)
+- [x] Interactive playground deployed (`@kata-framework/docs-playground`, lazy-loaded)
+- [x] Multiplayer guide published (`/kata/docs/guides/multiplayer`)
+- [x] Plugin authoring guide migrated to docs site (`/kata/docs/guides/plugins`)
+- [x] Root README links to docs site (slimmed to 66 lines)
+- [x] `CLAUDE.md` updated with new architecture, build, and testing entries
+- [x] Version `1.0.0` — stable API surface commitment
+
+**Phase 10 complete (2026-04-15).**
 - [ ] Changesets for all packages (major version bump)
 - [ ] `bun run release` — publish all packages at `1.0.0`
 
