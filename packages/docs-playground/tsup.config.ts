@@ -16,4 +16,5 @@ export default defineConfig({
   splitting: false,
   minify: true,
   target: "es2022",
+  platform: "browser",
 });
