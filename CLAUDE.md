@@ -262,3 +262,54 @@ Docs source lives in `docs/site/` (MDX prose, `examples/*.kata` preloaded scenes
 - `bun run docs` — run both in sequence
 
 All kata-related content (prose, API reference, playground source) is authored in this repo. `purukitto-web` is a render target only — it hosts the Astro site at `/kata/docs`. When changing runtime behavior, update the relevant page under `docs/site/` in the same PR.
+
+## Release workflow
+
+Every phase/milestone ends in a coordinated release of the affected packages. The full sequence below was validated on the v1.0.0 cut.
+
+### Prep (per affected package)
+
+1. Write one changeset per publishable package under `.changeset/` with an explicit bump type:
+   ```
+   ---
+   "@kata-framework/<pkg>": major | minor | patch
+   ---
+   ```
+2. Commit the changesets (`chore(release): add <name> changesets`).
+
+### Prep run
+
+Run `bun run release:prep` — this chains `changeset version` → `bun test` → `bun run build` → `bun run docs`. On success:
+
+- All `packages/*/package.json` and `CHANGELOG.md` are bumped.
+- Tests and builds are green.
+- `docs-generated/api/` and `../purukitto-web/src/content/kata-docs/` are refreshed with the new versions; the sync manifest reflects the bump.
+
+### Verify versions before publishing
+
+`changeset version` propagates bumps through workspace dependents. **A major bump on a dependency (e.g. `kata-core`) forces a major bump on every consumer regardless of that consumer's own changeset type.** This bit us on v1.0.0: `kata-react` had a `minor` changeset (`1.2.0 → 1.3.0`) but was auto-promoted to `2.0.0` because `kata-core` went major.
+
+After running `release:prep`, always `grep '"version"' packages/*/package.json` and sanity-check each package matches the target from the phase plan. If a package got over-bumped:
+
+1. Manually edit its `package.json` `version` field back to the intended value.
+2. Edit its `CHANGELOG.md` top heading (`## X.Y.Z`) to match.
+3. `workspace:*` consumers are untouched — publish-time resolution still works.
+
+This manual override is safe because `changeset publish` reads the literal `version` field at publish time; it does not re-derive it.
+
+### Commit, publish, tag
+
+1. `git add -A && git commit -m "chore(release): vX.Y.Z"`
+2. `bun run release` — builds once more and runs `changeset publish`, which publishes every package whose local version is ahead of npm. Changesets also creates per-package git tags.
+3. `git tag -a vX.Y.Z -m "Kata Framework vX.Y.Z"` — an umbrella tag for the phase/milestone.
+4. `git push origin main --follow-tags`
+5. `gh release create vX.Y.Z --title "..." --notes "..."` — GitHub release built from the CHANGELOG entries.
+
+### Sync the docs site
+
+1. `cd ../purukitto-web && git add -A && git commit -m "docs(kata): sync vX.Y.Z release manifest and API reference"`
+2. `git push origin main` — Vercel deploys the refreshed docs site.
+
+### Update ROADMAP.md
+
+Check off the phase, stamp it with today's date, update the current-version line. Commit separately if not already bundled with the version commit.
