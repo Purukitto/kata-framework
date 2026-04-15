@@ -72,6 +72,56 @@ async function mirrorDir(src: string, dest: string, opts: { clean: boolean }) {
   return count;
 }
 
+/**
+ * TypeDoc generates markdown files that often lack (or have incomplete) frontmatter.
+ * Astro's content collection schema for `kata-docs` requires `title` and
+ * `section`, so we stamp missing fields based on file path.
+ */
+async function normalizeApiFrontmatter(root: string) {
+  let touched = 0;
+  for await (const file of walk(root)) {
+    if (!file.endsWith(".md") && !file.endsWith(".mdx")) continue;
+    const raw = await readFile(file, "utf8");
+    const rel = relative(root, file).replace(/\\/g, "/");
+
+    const hasFm = raw.startsWith("---\n");
+    let body = raw;
+    let fm: Record<string, string> = {};
+    if (hasFm) {
+      const end = raw.indexOf("\n---", 4);
+      if (end !== -1) {
+        const fmRaw = raw.slice(4, end);
+        body = raw.slice(end + 4).replace(/^\n/, "");
+        for (const line of fmRaw.split("\n")) {
+          const m = /^([a-zA-Z0-9_-]+):\s*(.*)$/.exec(line);
+          if (m) fm[m[1]] = m[2].replace(/^["']|["']$/g, "");
+        }
+      }
+    }
+
+    // Derive missing fields.
+    if (!fm.title) {
+      const h1 = /^#\s+(.+)$/m.exec(body);
+      fm.title = h1 ? h1[1].trim() : rel.replace(/\.(md|mdx)$/, "").split("/").pop() || rel;
+    }
+    fm.section = "api";
+    if (!fm.order) fm.order = "999";
+    const pkgMatch = /^([^/]+)\//.exec(rel);
+    if (pkgMatch && !fm.package) {
+      const short = pkgMatch[1].replace(/^kata-/, "");
+      fm.package = `@kata-framework/${short}`;
+    }
+
+    const fmLines = Object.entries(fm).map(
+      ([k, v]) => `${k}: ${/^[0-9]+$/.test(v) ? v : JSON.stringify(v)}`,
+    );
+    const next = `---\n${fmLines.join("\n")}\n---\n\n${body}`;
+    await writeFile(file, next, "utf8");
+    touched += 1;
+  }
+  return touched;
+}
+
 async function readPackageVersion(pkgDir: string): Promise<string | null> {
   const pkgJson = join(ROOT, "packages", pkgDir, "package.json");
   if (!existsSync(pkgJson)) return null;
@@ -101,6 +151,8 @@ async function main() {
   // 2. Mirror API (clean target — TypeDoc owns this subtree)
   const apiCount = await mirrorDir(SRC_API, DEST_API, { clean: true });
   console.log(`[docs:sync] api files copied: ${apiCount}`);
+  const normalized = await normalizeApiFrontmatter(DEST_API);
+  console.log(`[docs:sync] api frontmatter normalized: ${normalized}`);
 
   // 3. Copy playground bundle
   if (existsSync(SRC_PLAYGROUND_DIST)) {
@@ -114,14 +166,15 @@ async function main() {
   }
 
   // 4. Write manifest
-  const versions: Record<string, string> = {};
+  const packages: Record<string, string> = {};
   for (const pkg of PACKAGES_TO_VERSION) {
     const v = await readPackageVersion(pkg);
-    if (v) versions[pkg] = v;
+    if (v) packages[`@kata-framework/${pkg.replace(/^kata-/, "")}`] = v;
   }
   const manifest = {
     generatedAt: new Date().toISOString(),
-    versions,
+    commitSha: process.env.GIT_COMMIT_SHA ?? "local",
+    packages,
   };
   await ensureDir(dirname(DEST_MANIFEST));
   await writeFile(DEST_MANIFEST, JSON.stringify(manifest, null, 2) + "\n", "utf8");
