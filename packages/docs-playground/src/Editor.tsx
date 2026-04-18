@@ -23,6 +23,7 @@ export function Editor({ source, onChange }: EditorProps) {
         fontSize: "12px",
         resize: "none",
         background: "#fafafa",
+        color: "#222",
       }}
     />
   );

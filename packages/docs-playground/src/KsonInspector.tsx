@@ -15,6 +15,7 @@ export function KsonInspector({ json }: { json: string }) {
           margin: "4px 0",
           padding: "6px",
           background: "#f5f5f5",
+          color: "#222",
           borderRadius: "4px",
           fontFamily: "ui-monospace, monospace",
           fontSize: "11px",

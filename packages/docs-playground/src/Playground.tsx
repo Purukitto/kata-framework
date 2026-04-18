@@ -142,6 +142,9 @@ export function Playground(props: PlaygroundProps) {
         border: "1px solid #ddd",
         borderRadius: "6px",
         overflow: "hidden",
+        background: "#fff",
+        color: "#222",
+        colorScheme: "light",
       }}
     >
       <Editor source={source} onChange={onSourceChange} />
