@@ -9,13 +9,13 @@ export function KsonInspector({ json }: { json: string }) {
       onToggle={(e) => setOpen((e.target as HTMLDetailsElement).open)}
       style={{ marginTop: "8px", fontSize: "11px" }}
     >
-      <summary style={{ cursor: "pointer", color: "#666" }}>Parsed KSON</summary>
+      <summary style={{ cursor: "pointer", color: "#aaa" }}>Parsed KSON</summary>
       <pre
         style={{
           margin: "4px 0",
           padding: "6px",
-          background: "#f5f5f5",
-          color: "#222",
+          background: "#0d0d0d",
+          color: "#ddd",
           borderRadius: "4px",
           fontFamily: "ui-monospace, monospace",
           fontSize: "11px",

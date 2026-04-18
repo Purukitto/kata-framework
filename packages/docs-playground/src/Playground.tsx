@@ -139,16 +139,23 @@ export function Playground(props: PlaygroundProps) {
         height: props.height,
         fontFamily: "system-ui, sans-serif",
         fontSize: "13px",
-        border: "1px solid #ddd",
+        border: "1px solid #333",
         borderRadius: "6px",
         overflow: "hidden",
-        background: "#fff",
-        color: "#222",
-        colorScheme: "light",
       }}
     >
       <Editor source={source} onChange={onSourceChange} />
-      <div style={{ display: "flex", flexDirection: "column", overflow: "auto", padding: "8px" }}>
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          overflow: "auto",
+          padding: "8px",
+          background: "#1a1a1a",
+          color: "#e5e5e5",
+          colorScheme: "dark",
+        }}
+      >
         {errorMsg && (
           <div
             data-playground-error

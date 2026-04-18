@@ -8,7 +8,7 @@ export interface OutputProps {
 export function Output({ frame }: OutputProps) {
   if (!frame) {
     return (
-      <div data-playground-output style={{ color: "#999", fontStyle: "italic" }}>
+      <div data-playground-output style={{ color: "#888", fontStyle: "italic" }}>
         No frame yet.
       </div>
     );
@@ -20,7 +20,7 @@ export function Output({ frame }: OutputProps) {
     <div data-playground-output style={{ minHeight: "80px" }}>
       {action.type === "text" && (
         <div>
-          <div style={{ fontWeight: 600, color: "#555" }}>{action.speaker}</div>
+          <div style={{ fontWeight: 600, color: "#bbb" }}>{action.speaker}</div>
           <div>{action.content}</div>
         </div>
       )}
@@ -32,15 +32,15 @@ export function Output({ frame }: OutputProps) {
         </ul>
       )}
       {action.type === "visual" && (
-        <div style={{ fontStyle: "italic", color: "#666" }}>
+        <div style={{ fontStyle: "italic", color: "#888" }}>
           [visual: {action.layer} → {action.src}]
         </div>
       )}
       {action.type === "wait" && (
-        <div style={{ fontStyle: "italic", color: "#666" }}>[wait {action.duration}ms]</div>
+        <div style={{ fontStyle: "italic", color: "#888" }}>[wait {action.duration}ms]</div>
       )}
       {action.type === "exec" && (
-        <div style={{ fontStyle: "italic", color: "#666" }}>[exec]</div>
+        <div style={{ fontStyle: "italic", color: "#888" }}>[exec]</div>
       )}
     </div>
   );

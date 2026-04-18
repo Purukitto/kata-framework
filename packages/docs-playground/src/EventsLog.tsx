@@ -9,7 +9,7 @@ export function EventsLog({ events }: { events: string[] }) {
       onToggle={(e) => setOpen((e.target as HTMLDetailsElement).open)}
       style={{ marginTop: "8px", fontSize: "11px" }}
     >
-      <summary style={{ cursor: "pointer", color: "#666" }}>
+      <summary style={{ cursor: "pointer", color: "#aaa" }}>
         Events ({events.length})
       </summary>
       <ul style={{ margin: "4px 0", paddingLeft: "16px", fontFamily: "ui-monospace, monospace" }}>
