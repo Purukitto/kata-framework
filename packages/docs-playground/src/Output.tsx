@@ -3,9 +3,30 @@ import type { KSONFrame } from "@kata-framework/core";
 
 export interface OutputProps {
   frame: KSONFrame | null;
+  onNext: () => void;
+  onChoice: (choiceId: string) => void;
+  ended: boolean;
 }
 
-export function Output({ frame }: OutputProps) {
+const buttonStyle: React.CSSProperties = {
+  background: "#2d2d2d",
+  color: "#e5e5e5",
+  border: "1px solid #444",
+  borderRadius: "4px",
+  padding: "4px 10px",
+  font: "inherit",
+  cursor: "pointer",
+};
+
+const choiceButtonStyle: React.CSSProperties = {
+  ...buttonStyle,
+  display: "block",
+  width: "100%",
+  textAlign: "left",
+  marginTop: "4px",
+};
+
+export function Output({ frame, onNext, onChoice, ended }: OutputProps) {
   if (!frame) {
     return (
       <div data-playground-output style={{ color: "#888", fontStyle: "italic" }}>
@@ -25,11 +46,18 @@ export function Output({ frame }: OutputProps) {
         </div>
       )}
       {action.type === "choice" && (
-        <ul style={{ margin: 0, paddingLeft: "16px" }}>
+        <div data-playground-choices>
           {action.choices.map((c) => (
-            <li key={c.id}>{c.label}</li>
+            <button
+              key={c.id}
+              type="button"
+              style={choiceButtonStyle}
+              onClick={() => onChoice(c.id)}
+            >
+              {c.label}
+            </button>
           ))}
-        </ul>
+        </div>
       )}
       {action.type === "visual" && (
         <div style={{ fontStyle: "italic", color: "#888" }}>
@@ -42,6 +70,17 @@ export function Output({ frame }: OutputProps) {
       {action.type === "exec" && (
         <div style={{ fontStyle: "italic", color: "#888" }}>[exec]</div>
       )}
+
+      <div style={{ marginTop: "10px", display: "flex", gap: "6px", alignItems: "center" }}>
+        {action.type !== "choice" && !ended && (
+          <button type="button" style={buttonStyle} onClick={onNext}>
+            Next →
+          </button>
+        )}
+        {ended && (
+          <span style={{ color: "#888", fontStyle: "italic" }}>Scene ended.</span>
+        )}
+      </div>
     </div>
   );
 }

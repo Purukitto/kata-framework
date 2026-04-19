@@ -23,6 +23,7 @@ interface ParseState {
   fatalError: string | null;
   events: string[];
   ksonJson: string;
+  ended: boolean;
 }
 
 export function Playground(props: PlaygroundProps) {
@@ -63,12 +64,13 @@ export function Playground(props: PlaygroundProps) {
         fatalError: null,
         events: [...events],
         ksonJson: safeJson(result.scene),
+        ended: false,
       });
     });
 
     result.engine.on("end", () => {
       events.push("end");
-      setState((prev) => ({ ...prev, events: [...events] }));
+      setState((prev) => ({ ...prev, events: [...events], ended: true }));
     });
 
     result.engine.on("error", (e: any) => {
@@ -107,6 +109,24 @@ export function Playground(props: PlaygroundProps) {
   const onSourceChange = useCallback((next: string) => {
     setSource(next);
     debouncedRebuildRef.current!(next);
+  }, []);
+
+  const onNext = useCallback(() => {
+    try {
+      engineRef.current?.engine?.next();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setState((prev) => ({ ...prev, fatalError: msg }));
+    }
+  }, []);
+
+  const onChoice = useCallback((choiceId: string) => {
+    try {
+      engineRef.current?.engine?.makeChoice(choiceId);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setState((prev) => ({ ...prev, fatalError: msg }));
+    }
   }, []);
 
   const setSceneImperative = useCallback((next: string) => {
@@ -173,7 +193,7 @@ export function Playground(props: PlaygroundProps) {
             {errorMsg}
           </div>
         )}
-        <Output frame={state.frame} />
+        <Output frame={state.frame} onNext={onNext} onChoice={onChoice} ended={state.ended} />
         {props.showEvents && <EventsLog events={state.events} />}
         {props.showKson && <KsonInspector json={state.ksonJson} />}
       </div>
@@ -190,6 +210,7 @@ function buildInitial(source: string): ParseState {
     fatalError: result.fatalError,
     events: [],
     ksonJson: result.scene ? safeJson(result.scene) : "",
+    ended: false,
   };
 }
 
