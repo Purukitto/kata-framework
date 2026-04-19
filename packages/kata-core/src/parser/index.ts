@@ -325,15 +325,39 @@ function parseActions(
       }
 
       if (text.trim().startsWith("::")) {
-        const match = text.match(/^::\s*(.*?)\s*::\s*([\s\S]*)/);
-        if (match) {
-          actions.push({
-            type: "text",
-            speaker: match[1],
-            content: match[2].trim(),
-          });
-          return;
+        // A paragraph may contain several adjacent `:: Speaker :: line` rows
+        // (markdown collapses them since there's no blank line between).
+        // Split into one text action per speaker line; non-speaker lines
+        // continue as content under the previous speaker.
+        const lines = text.split("\n");
+        let currentSpeaker: string | null = null;
+        let currentContent: string[] = [];
+        let pushed = false;
+
+        const flush = () => {
+          if (currentSpeaker !== null) {
+            actions.push({
+              type: "text",
+              speaker: currentSpeaker,
+              content: currentContent.join("\n").trim(),
+            });
+            pushed = true;
+          }
+        };
+
+        for (const line of lines) {
+          const m = line.match(/^::\s*(.*?)\s*::\s*(.*)$/);
+          if (m) {
+            flush();
+            currentSpeaker = m[1]!;
+            currentContent = m[2] ? [m[2]!] : [];
+          } else if (currentSpeaker !== null) {
+            currentContent.push(line);
+          }
         }
+        flush();
+
+        if (pushed) return;
       }
     }
 
